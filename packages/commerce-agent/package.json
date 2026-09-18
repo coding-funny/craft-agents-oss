@@ -28,6 +28,8 @@
     "eval:failures": "bun run evals/failure-injection.ts",
     "demo": "bun run demo/run-demo.ts",
     "server": "bun run src/mcp/server.ts",
+    "api": "bun run src/api/server.ts",
+    "test:auth": "bun test tests/auth tests/api tests/approval-policy",
     "setup": "bun run src/setup/cli.ts",
     "demo:diagnose": "bun run src/demo/diagnose.ts",
     "demo:proposal": "bun run src/cli/create-proposal.ts",
@@ -40,6 +42,7 @@
     "@craft-agent/shared": "workspace:*",
     "@earendil-works/pi-ai": "0.85.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "jose": "^6.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

@@ -18,6 +18,8 @@ export async function createProposalTool(
     reportId: input.report_id,
     recommendationId: input.recommendation_id,
     expiresAt: input.expires_at,
+    principal: dependencies.principal,
+    ...dependencies.proposalContext,
   })
   const evidence: EvidenceRef[] = proposal.evidenceIds.map(evidenceId => {
     const record = dependencies.evidence.getOrThrow(evidenceId)

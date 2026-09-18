@@ -7,6 +7,8 @@ import { createPostgresClient, runPostgresMigrations } from '../storage/postgres
 import { PostgresDataGovernanceRepository } from '../storage/postgres/postgres-data-governance-repository.ts'
 import { SqliteDataGovernanceRepository } from '../storage/sqlite-data-governance-repository.ts'
 import { redactErrorMessage } from '../mcp/trace.ts'
+import { loadImportManifest } from '../imports/manifest-loader.ts'
+import { localTestPrincipal } from '../auth/local-test.ts'
 
 type Options = {
   manifest: string
@@ -40,7 +42,11 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   if (options.databaseUrl) {
     const sql = createPostgresClient(options.databaseUrl)
     await runPostgresMigrations(sql, resolve(import.meta.dir, '../../migrations/postgres'))
-    repository = new PostgresDataGovernanceRepository(sql)
+    const loaded = await loadImportManifest(resolve(options.manifest))
+    repository = new PostgresDataGovernanceRepository(sql, localTestPrincipal({
+      actorId: 'commerce-import-service', tenantId: loaded.manifest.scope.tenantId,
+      shopIds: [loaded.manifest.scope.shopId], roles: ['ADMIN'], authSource: 'service-identity',
+    }))
     close = () => sql.close()
   } else {
     const database = new CommerceDatabase(resolve(options.sqlite!))

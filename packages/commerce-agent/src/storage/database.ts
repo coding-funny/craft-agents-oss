@@ -6,6 +6,11 @@ import type { DiagnosisReport } from '../reports/schema.ts'
 
 type JsonRow = { json: string }
 
+function ensureColumn(database: Database, table: string, column: string, definition: string): void {
+  const columns = database.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all()
+  if (!columns.some(item => item.name === column)) database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+}
+
 export class CommerceDatabase {
   readonly database: Database
 
@@ -287,7 +292,87 @@ export class CommerceDatabase {
         FOREIGN KEY(snapshot_id, tenant_id, shop_id)
           REFERENCES commerce_snapshots(snapshot_id, tenant_id, shop_id)
       );
+      CREATE TABLE IF NOT EXISTS commerce_memberships (
+        subject TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        roles_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY(subject, tenant_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_shop_grants (
+        subject TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY(subject, tenant_id, shop_id),
+        FOREIGN KEY(subject, tenant_id) REFERENCES commerce_memberships(subject, tenant_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_oidc_flows (
+        state_hash TEXT PRIMARY KEY,
+        nonce_hash TEXT NOT NULL,
+        code_verifier TEXT NOT NULL,
+        tenant_hint TEXT,
+        expires_at TEXT NOT NULL,
+        consumed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS commerce_sessions (
+        session_id TEXT PRIMARY KEY,
+        token_hash TEXT NOT NULL UNIQUE,
+        csrf_hash TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        membership_version INTEGER NOT NULL,
+        expires_at TEXT NOT NULL,
+        revoked_at TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(subject, tenant_id) REFERENCES commerce_memberships(subject, tenant_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_sessions_subject
+        ON commerce_sessions(subject, tenant_id, expires_at);
+      CREATE TABLE IF NOT EXISTS commerce_authz_audit (
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trace_id TEXT NOT NULL,
+        actor_id TEXT,
+        subject TEXT,
+        tenant_id TEXT,
+        shop_id TEXT,
+        action TEXT NOT NULL,
+        decision TEXT NOT NULL,
+        reason_code TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS commerce_request_idempotency (
+        tenant_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        request_key TEXT NOT NULL,
+        payload_hash TEXT NOT NULL,
+        response_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(tenant_id, actor_id, operation, request_key)
+      );
     `)
+    ensureColumn(this.database, 'reports', 'tenant_id', 'TEXT')
+    ensureColumn(this.database, 'reports', 'shop_id', 'TEXT')
+    ensureColumn(this.database, 'reports', 'snapshot_id', 'TEXT')
+    ensureColumn(this.database, 'proposals', 'tenant_id', "TEXT NOT NULL DEFAULT 'local-tenant'")
+    ensureColumn(this.database, 'proposals', 'shop_id', "TEXT NOT NULL DEFAULT 'demo-shop'")
+    ensureColumn(this.database, 'proposals', 'requested_by', "TEXT NOT NULL DEFAULT 'local-agent'")
+    ensureColumn(this.database, 'proposals', 'snapshot_id', "TEXT NOT NULL DEFAULT 'LEGACY_DEMO'")
+    ensureColumn(this.database, 'proposals', 'review_status', "TEXT NOT NULL DEFAULT 'LEGACY_DEMO'")
+    ensureColumn(this.database, 'proposals', 'policy_version', "TEXT NOT NULL DEFAULT 'approval-policy-v1'")
+    ensureColumn(this.database, 'proposals', 'target_version', 'INTEGER NOT NULL DEFAULT 1')
+    ensureColumn(this.database, 'approvals', 'subject', "TEXT NOT NULL DEFAULT 'local-subject'")
+    ensureColumn(this.database, 'approvals', 'session_id', 'TEXT')
+    ensureColumn(this.database, 'approvals', 'policy_version', "TEXT NOT NULL DEFAULT 'approval-policy-v1'")
+    ensureColumn(this.database, 'approvals', 'reason_code', "TEXT NOT NULL DEFAULT 'ALLOW_LEGACY_TEST'")
   }
 
   saveEvidence(record: EvidenceRecord): void {

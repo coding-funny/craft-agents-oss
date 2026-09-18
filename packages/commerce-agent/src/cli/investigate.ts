@@ -112,6 +112,7 @@ export async function investigateCli(): Promise<number> {
         shopId: task.resolvedScope?.shopId ?? config.principal.allowedShopIds[0]!,
         reportDir: config.reportDir,
         dbPath: config.dbPath,
+        requestedBy: task.requestedBy,
         traceFile: config.traceFile,
         ...(config.dataMode === 'fixture'
           ? { dataMode: 'fixture' as const, fixtureDir: config.fixtureDir }

@@ -12,6 +12,8 @@ import { MockExecutor } from '../src/execution/mock-executor.ts'
 import { EvidenceRepository } from '../src/evidence/evidence-repository.ts'
 import { ReportRepository } from '../src/reports/report-repository.ts'
 import { CommerceDatabase } from '../src/storage/database.ts'
+import { localTestPrincipal } from '../src/auth/local-test.ts'
+import { IdentityRepository } from '../src/auth/repository.ts'
 
 const temporaryDirectories: string[] = []
 const CLOCK = '2026-09-15T10:00:00+08:00'
@@ -47,7 +49,10 @@ async function harness(caseName: 'ads-conversion' | 'inventory-shortage' = 'ads-
     now,
   })
   const executions = new ExecutionService({ repository, executor, now })
-  return { root, dbPath, reportDir, persisted, store, reports, repository, proposals, approvals, executor, executions, clock }
+  const requester = localTestPrincipal({ actorId: 'operator-requester', roles: ['OPERATOR'] })
+  const approver = localTestPrincipal({ actorId: 'operator-approver', roles: ['APPROVER'] })
+  const executionPrincipal = localTestPrincipal({ actorId: 'execution-service', roles: ['EXECUTOR'], authSource: 'service-identity' })
+  return { root, dbPath, reportDir, persisted, store, reports, repository, proposals, approvals, executor, executions, clock, requester, approver, executionPrincipal }
 }
 
 async function approvedHarness() {
@@ -56,8 +61,9 @@ async function approvedHarness() {
     reportId: result.persisted.report.reportId,
     recommendationId: 'rec-ad-budget-review',
     expiresAt: EXPIRY,
+    principal: result.requester,
   })
-  result.approvals.approve({ proposalId: proposal.proposalId, actor: 'operator-a', reason: 'Reviewed campaign evidence.' })
+  result.approvals.approve({ proposalId: proposal.proposalId, principal: result.approver, reason: 'Reviewed campaign evidence.', confirmHash: proposal.contentHash })
   return { ...result, proposal: result.repository.getOrThrow(proposal.proposalId) }
 }
 
@@ -73,7 +79,7 @@ describe('proposal state machine and mock execution', () => {
 
   it('creates one immutable pending proposal from a RESOLVED report', async () => {
     const result = await harness()
-    const input = { reportId: result.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY }
+    const input = { reportId: result.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY, principal: result.requester }
     const first = await result.proposals.create(input)
     const second = await result.proposals.create(input)
     expect(first.status).toBe('PENDING_APPROVAL')
@@ -89,36 +95,37 @@ describe('proposal state machine and mock execution', () => {
       reportId: result.persisted.report.reportId,
       recommendationId: 'rec-inventory-replenishment',
       expiresAt: EXPIRY,
+      principal: result.requester,
     })).rejects.toThrow('Only RESOLVED reports')
   })
 
   it('blocks unapproved, rejected, expired, and tampered proposals', async () => {
     const unapproved = await harness()
-    const pending = await unapproved.proposals.create({ reportId: unapproved.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY })
-    expect(() => unapproved.executions.execute({ proposalId: pending.proposalId, actor: 'operator-a' })).toThrow('cannot execute')
+    const pending = await unapproved.proposals.create({ reportId: unapproved.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY, principal: unapproved.requester })
+    expect(() => unapproved.executions.execute({ proposalId: pending.proposalId, principal: unapproved.executionPrincipal })).toThrow('cannot execute')
 
     const rejected = await harness()
-    const rejectedProposal = await rejected.proposals.create({ reportId: rejected.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY })
-    rejected.approvals.reject({ proposalId: rejectedProposal.proposalId, actor: 'operator-b', reason: 'Budget risk.' })
-    expect(() => rejected.executions.execute({ proposalId: rejectedProposal.proposalId, actor: 'operator-b' })).toThrow('cannot execute')
+    const rejectedProposal = await rejected.proposals.create({ reportId: rejected.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: EXPIRY, principal: rejected.requester })
+    rejected.approvals.reject({ proposalId: rejectedProposal.proposalId, principal: rejected.approver, reason: 'Budget risk.', confirmHash: rejectedProposal.contentHash })
+    expect(() => rejected.executions.execute({ proposalId: rejectedProposal.proposalId, principal: rejected.executionPrincipal })).toThrow('cannot execute')
 
     const expired = await harness()
-    const expiresSoon = await expired.proposals.create({ reportId: expired.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: '2026-09-15T10:30:00+08:00' })
-    expired.approvals.approve({ proposalId: expiresSoon.proposalId, actor: 'operator-c', reason: 'Short-lived approval.' })
+    const expiresSoon = await expired.proposals.create({ reportId: expired.persisted.report.reportId, recommendationId: 'rec-ad-budget-review', expiresAt: '2026-09-15T10:30:00+08:00', principal: expired.requester })
+    expired.approvals.approve({ proposalId: expiresSoon.proposalId, principal: expired.approver, reason: 'Short-lived approval.', confirmHash: expiresSoon.contentHash })
     expired.clock.value = '2026-09-15T11:00:00+08:00'
-    expect(() => expired.executions.execute({ proposalId: expiresSoon.proposalId, actor: 'operator-c' })).toThrow('expired')
+    expect(() => expired.executions.execute({ proposalId: expiresSoon.proposalId, principal: expired.executionPrincipal })).toThrow('expired')
     expect(expired.repository.getOrThrow(expiresSoon.proposalId).status).toBe('EXPIRED')
 
     const tampered = await approvedHarness()
     tampered.store.database.query('UPDATE proposals SET params_json = ?1 WHERE proposal_id = ?2')
       .run(JSON.stringify({ newBudgetMinor: 1, currency: 'CNY', expectedVersion: 1 }), tampered.proposal.proposalId)
-    expect(() => tampered.executions.execute({ proposalId: tampered.proposal.proposalId, actor: 'operator-a' })).toThrow('content hash mismatch')
+    expect(() => tampered.executions.execute({ proposalId: tampered.proposal.proposalId, principal: tampered.executionPrincipal })).toThrow('content hash mismatch')
   })
 
   it('executes once, returns the first result on retry, and records actor/trace audit', async () => {
     const result = await approvedHarness()
-    const first = result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-a' })
-    const second = result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-a' })
+    const first = result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })
+    const second = result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })
     expect(first.proposal.status).toBe('SUCCEEDED')
     expect(second.replayed).toBe(true)
     expect(second.attempt.attemptId).toBe(first.attempt.attemptId)
@@ -126,28 +133,69 @@ describe('proposal state machine and mock execution', () => {
     const operations = result.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM mock_operations').get()
     expect(operations?.count).toBe(1)
     const audits = result.repository.listAudit(result.proposal.proposalId)
-    expect(audits.some(row => row.actor === 'operator-a' && row.trace_id === 'trace-ads-conversion-001')).toBe(true)
+    expect(audits.some(row => row.actor === 'execution-service' && row.trace_id === 'trace-ads-conversion-001')).toBe(true)
   })
 
   it('allows only one side effect across concurrent execution calls', async () => {
     const result = await approvedHarness()
     const settled = await Promise.allSettled([
-      Promise.resolve().then(() => result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-a' })),
-      Promise.resolve().then(() => result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-b' })),
+      Promise.resolve().then(() => result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })),
+      Promise.resolve().then(() => result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })),
     ])
     expect(settled.filter(item => item.status === 'fulfilled')).toHaveLength(2)
     const operations = result.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM mock_operations').get()
     expect(operations?.count).toBe(1)
   })
 
+  it('allows only one terminal decision across concurrent approval calls', async () => {
+    const result = await harness()
+    const proposal = await result.proposals.create({
+      reportId: result.persisted.report.reportId, recommendationId: 'rec-ad-budget-review',
+      expiresAt: EXPIRY, principal: result.requester,
+    })
+    const settled = await Promise.allSettled([
+      Promise.resolve().then(() => result.approvals.approve({
+        proposalId: proposal.proposalId, principal: result.approver, reason: 'first', confirmHash: proposal.contentHash,
+      })),
+      Promise.resolve().then(() => result.approvals.reject({
+        proposalId: proposal.proposalId, principal: result.approver, reason: 'second', confirmHash: proposal.contentHash,
+      })),
+    ])
+    expect(settled.filter(item => item.status === 'fulfilled')).toHaveLength(1)
+    expect(result.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM approvals').get()?.count).toBe(1)
+  })
+
+  it('blocks execution when the original approver authorization was revoked', async () => {
+    const result = await approvedHarness()
+    const identity = new IdentityRepository(result.store)
+    const now = new Date(CLOCK).toISOString()
+    identity.upsertMembership({
+      subject: result.approver.subject, actorId: result.approver.actorId, tenantId: result.approver.tenantId,
+      roles: ['APPROVER'], now,
+    })
+    identity.setShopGrant({
+      subject: result.approver.subject, tenantId: result.approver.tenantId, shopId: 'demo-shop', now,
+    })
+    identity.upsertMembership({
+      subject: result.approver.subject, actorId: result.approver.actorId, tenantId: result.approver.tenantId,
+      roles: ['APPROVER'], status: 'REVOKED', now: '2026-09-15T10:01:00.000Z',
+    })
+    const guarded = new ExecutionService({
+      repository: result.repository, executor: result.executor, now: () => new Date(result.clock.value),
+      approvalGuard: (proposal, approval) => identity.assertApprovalStillAuthorized(proposal, approval),
+    })
+    expect(() => guarded.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })).toThrow('revoked')
+    expect(result.repository.getOrThrow(result.proposal.proposalId).status).toBe('APPROVED')
+  })
+
   it('does not repeat a lost-response write and reconciles it from the mock ledger', async () => {
     const result = await approvedHarness()
-    const unknown = result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-a', simulateResponseLoss: true })
+    const unknown = result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal, simulateResponseLoss: true })
     expect(unknown.proposal.status).toBe('UNKNOWN')
-    const repeat = result.executions.execute({ proposalId: result.proposal.proposalId, actor: 'operator-a' })
+    const repeat = result.executions.execute({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })
     expect(repeat.proposal.status).toBe('UNKNOWN')
     expect(repeat.replayed).toBe(true)
-    const reconciled = result.executions.reconcile({ proposalId: result.proposal.proposalId, actor: 'operator-a' })
+    const reconciled = result.executions.reconcile({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal })
     expect(reconciled.status).toBe('SUCCEEDED')
     const operations = result.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM mock_operations').get()
     expect(operations?.count).toBe(1)
@@ -162,7 +210,7 @@ describe('proposal state machine and mock execution', () => {
     }
     result.repository.insertAttempt(attempt)
     result.repository.transition(result.proposal.proposalId, 'EXECUTING', 'UNKNOWN')
-    expect(result.executions.reconcile({ proposalId: result.proposal.proposalId, actor: 'operator-a' }).status).toBe('FAILED')
+    expect(result.executions.reconcile({ proposalId: result.proposal.proposalId, principal: result.executionPrincipal }).status).toBe('FAILED')
   })
 
   it('persists evidence and report integrity across repository restarts', async () => {

@@ -20,6 +20,7 @@ import { ReportRepository } from '../src/reports/report-repository.ts'
 import { ActionDraftSchema } from '../src/reports/schema.ts'
 import { runRecoverableCase } from '../src/recovery/runner.ts'
 import { CommerceDatabase } from '../src/storage/database.ts'
+import { localTestPrincipal } from '../src/auth/local-test.ts'
 import type { EvalCaseResult, MetricObservation } from './scorers.ts'
 import type { EvalCase } from './types.ts'
 
@@ -138,12 +139,16 @@ async function proposalHarness(root: string, fixtureDir: string) {
   const approvals = new ApprovalService({ repository, now })
   const mock = new MockExecutor({ store, seedPath: resolve(fixtureDir, 'mock-platform-state.json'), now })
   const executions = new ExecutionService({ repository, executor: mock, now })
+  const requester = localTestPrincipal({ actorId: 'eval-requester', roles: ['OPERATOR'] })
+  const approver = localTestPrincipal({ actorId: 'eval-approver', roles: ['APPROVER'] })
+  const executionPrincipal = localTestPrincipal({ actorId: 'eval-executor', roles: ['EXECUTOR'], authSource: 'service-identity' })
   const proposal = await proposals.create({
     reportId: persisted.report.reportId,
     recommendationId: 'rec-ad-budget-review',
     expiresAt: LONG_EXPIRY,
+    principal: requester,
   })
-  return { ...persisted, store, reports, repository, proposals, approvals, mock, executions, proposal, clock }
+  return { ...persisted, store, reports, repository, proposals, approvals, mock, executions, proposal, clock, requester, approver, executionPrincipal }
 }
 
 async function runCheck(input: EvalCase, root: string, fixtureDir: string): Promise<{ passed: boolean; metrics: MetricObservation; details: Record<string, unknown> }> {
@@ -236,7 +241,10 @@ async function runCheck(input: EvalCase, root: string, fixtureDir: string): Prom
     })
     let blocked = false
     try {
-      await service.create({ reportId: persisted.report.reportId, recommendationId: 'rec-inventory-replenishment', expiresAt: EXPIRY })
+      await service.create({
+        reportId: persisted.report.reportId, recommendationId: 'rec-inventory-replenishment', expiresAt: EXPIRY,
+        principal: localTestPrincipal({ actorId: 'eval-requester', roles: ['OPERATOR'] }),
+      })
     } catch { blocked = true }
     store.close()
     return { passed: blocked, metrics: { approvalSafety: blocked }, details: { blocked } }
@@ -268,26 +276,26 @@ async function runCheck(input: EvalCase, root: string, fixtureDir: string): Prom
   try {
     if (input.check === 'approval_required') {
       let blocked = false
-      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' }) } catch { blocked = true }
+      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal }) } catch { blocked = true }
       return { passed: blocked, metrics: { approvalSafety: blocked }, details: { blocked } }
     }
     if (input.check === 'expired_approval') {
-      harness.approvals.approve({ proposalId: harness.proposal.proposalId, actor: 'eval-operator', reason: 'short-lived approval' })
+      harness.approvals.approve({ proposalId: harness.proposal.proposalId, principal: harness.approver, reason: 'short-lived approval', confirmHash: harness.proposal.contentHash })
       harness.clock.value = '2100-09-18T11:00:00+08:00'
       let blocked = false
-      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' }) } catch { blocked = true }
+      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal }) } catch { blocked = true }
       const status = harness.repository.getOrThrow(harness.proposal.proposalId).status
       return { passed: blocked && status === 'EXPIRED', metrics: { approvalSafety: blocked }, details: { blocked, status } }
     }
     if (input.check === 'proposal_tamper') {
-      harness.approvals.approve({ proposalId: harness.proposal.proposalId, actor: 'eval-operator', reason: 'tamper probe' })
+      harness.approvals.approve({ proposalId: harness.proposal.proposalId, principal: harness.approver, reason: 'tamper probe', confirmHash: harness.proposal.contentHash })
       harness.store.database.query('UPDATE proposals SET params_json = ?1 WHERE proposal_id = ?2')
         .run(JSON.stringify({ newBudgetMinor: 1, currency: 'CNY', expectedVersion: 1 }), harness.proposal.proposalId)
       let blocked = false
-      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' }) } catch { blocked = true }
+      try { harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal }) } catch { blocked = true }
       return { passed: blocked, metrics: { approvalSafety: blocked }, details: { blocked } }
     }
-    harness.approvals.approve({ proposalId: harness.proposal.proposalId, actor: 'eval-operator', reason: 'eval approval' })
+    harness.approvals.approve({ proposalId: harness.proposal.proposalId, principal: harness.approver, reason: 'eval approval', confirmHash: harness.proposal.contentHash })
     if (input.check === 'concurrent_execution') {
       harness.store.close()
       storeClosed = true
@@ -296,10 +304,9 @@ async function runCheck(input: EvalCase, root: string, fixtureDir: string): Prom
         'run',
         resolve(import.meta.dir, '../src/cli/execute.ts'),
         '--proposal', harness.proposal.proposalId,
-        '--actor', 'eval-operator',
         '--db', harness.dbPath,
       ]
-      const environment = { ...process.env, COMMERCE_MOCK_STATE_FIXTURE: resolve(fixtureDir, 'mock-platform-state.json') }
+      const environment = { ...process.env, COMMERCE_AUTH_MODE: 'local-test', COMMERCE_MOCK_STATE_FIXTURE: resolve(fixtureDir, 'mock-platform-state.json') }
       const first = Bun.spawn(command, { cwd: resolve(import.meta.dir, '..'), env: environment, stdout: 'ignore', stderr: 'ignore' })
       const second = Bun.spawn(command, { cwd: resolve(import.meta.dir, '..'), env: environment, stdout: 'ignore', stderr: 'ignore' })
       const exitCodes = await Promise.all([first.exited, second.exited])
@@ -311,16 +318,16 @@ async function runCheck(input: EvalCase, root: string, fixtureDir: string): Prom
       return { passed, metrics: { idempotencySuccess: passed, approvalSafety: passed }, details: { operationCount: count, status, exitCodes } }
     }
     if (input.check === 'idempotent_execution') {
-      const first = harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' })
-      const second = harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' })
+      const first = harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal })
+      const second = harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal })
       const count = harness.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM mock_operations').get()!.count
       const passed = count === 1 && second.replayed && second.attempt.attemptId === first.attempt.attemptId
       return { passed, metrics: { idempotencySuccess: passed, approvalSafety: passed }, details: { operationCount: count, replayed: second.replayed } }
     }
     if (input.check === 'response_loss') {
-      const unknown = harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator', simulateResponseLoss: true })
-      const replay = harness.executions.execute({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' })
-      const reconciled = harness.executions.reconcile({ proposalId: harness.proposal.proposalId, actor: 'eval-operator' })
+      const unknown = harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal, simulateResponseLoss: true })
+      const replay = harness.executions.execute({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal })
+      const reconciled = harness.executions.reconcile({ proposalId: harness.proposal.proposalId, principal: harness.executionPrincipal })
       const count = harness.store.database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM mock_operations').get()!.count
       const passed = unknown.proposal.status === 'UNKNOWN' && replay.replayed && reconciled.status === 'SUCCEEDED' && count === 1
       return { passed, metrics: { recoverySuccess: passed, idempotencySuccess: passed }, details: { operationCount: count, reconciled: reconciled.status } }

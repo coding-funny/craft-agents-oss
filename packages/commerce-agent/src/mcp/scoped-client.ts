@@ -6,6 +6,7 @@ export type ScopedCommerceClientOptions = {
   shopId: string
   reportDir: string
   dbPath: string
+  requestedBy?: string
   traceFile?: string
 } & (
   | { dataMode?: 'fixture'; fixtureDir: string }
@@ -32,6 +33,7 @@ export function createScopedCommerceClient(options: ScopedCommerceClientOptions)
       COMMERCE_SHOP_ID: options.shopId,
       COMMERCE_REPORT_DIR: options.reportDir,
       COMMERCE_DB_PATH: options.dbPath,
+      ...(options.requestedBy ? { COMMERCE_REQUESTED_BY: options.requestedBy } : {}),
       ...(options.traceFile ? { COMMERCE_TRACE_FILE: options.traceFile } : {}),
     },
   })

@@ -4,15 +4,15 @@
 
 更新时间：2026-09-18。
 
-01 链路已完成 B00—B07 编码和离线验收；02 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移或部署。
+01 链路已完成 B00—B07 编码和离线验收；02、03 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移、外部企业 IdP 或部署验收。
 
-当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-02`，父实现 commit=`cda50438`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
+当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-03`，父实现 commit=`1f9f4bf5`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
 
 | 链路 | 状态 | 当前批次 | 代码/验收证据 | 下一步 |
 | --- | --- | --- | --- | --- |
 | 01 真实模型与动态调查 | CODE_READY / B08 BLOCKED_EXTERNAL | B00—B07 完成 | 32 项 agent 测试；真实 stdio MCP 纵向链路；20 条 dev | 提供明确 live 模型配置与预算后执行 5 条 smoke |
 | 02 数据接入与证据治理 | CODE_READY / 外部验收阻塞 | B00—B07 本地完成 | 124 项全回归；多格式导入、不可变 snapshot、真实 stdio imported MCP | 提供 PostgreSQL URL 与授权数据后补 B07/B08 |
-| 03 身份授权与审批治理 | PLANNED | 无 | 无 | 等待 02 存储契约 |
+| 03 身份授权与审批治理 | CODE_READY / 外部验收阻塞 | B00—B06 本地完成 | 141 项全回归；真实本地 OIDC HTTP；RBAC/API/审批/撤销/RLS 合同 | 提供 PostgreSQL 应用角色与外部 IdP 后补 B07 |
 | 04 持久任务与可靠执行 | PLANNED | 无 | 无 | 等待身份与审批契约 |
 | 05 真实评测与回归门禁 | PLANNED | 无 | 无 | 种子工作随 01 开始 |
 | 06 运营交互与业务反馈 | PLANNED | 无 | 无 | 等待 API 与任务契约 |
@@ -38,6 +38,8 @@
 | 2026-09-18 | 02 保持 01 CommerceAdapter，新增 snapshot-bound 实现 | 避免重写调查 Loop，并固定单次 Run 的数据版本 | fixture/imported 通过同一 MCP 工具契约 |
 | 2026-09-18 | 数据记录按 tenant/shop/kind/source/sourceRecordId 版本化 | 同 ID 修订不能重复记账，不同来源不能误去重 | snapshot 保留不可变 membership 和逐记录来源 |
 | 2026-09-18 | PostgreSQL 验证与 SQLite 合同分层 | 当前无真库/容器，不能让本地测试冒充生产数据库 | URL 缺失时 postgres 测试明确 exit 1 |
+| 2026-09-18 | 03 采用独立 Commerce API + OIDC PKCE opaque session | 宿主 token 不能证明 commerce tenant/shop/role；独立边界更易验权 | 06 可挂载 handler，但不能绕过 membership、CSRF 或 scope |
+| 2026-09-18 | Proposal v2 与审批/执行主体分离 | 防自审、参数换绑、任意 actor 和审批后撤权失效 | 执行仅接受 service identity，并可重查原审批人权限 |
 
 ## 待落实的外部条件
 
@@ -95,6 +97,17 @@
 - Review：修正了初版去重键遗漏 sourceId 的问题；最终记录身份为 tenant/shop/kind/source/sourceRecordId。报告硬门禁拒绝混用 legacy/governed 或跨 snapshot/口径证据；semantic reviewer 不可用时只返回 PENDING_REVIEW。
 - Handoff：`packages/commerce-agent/docs/implementation/02/{baseline-audit,storage-decision,data-dictionary,acceptance,handoff}.md`。03 基于现有 scope 做身份/RBAC/RLS 和审批仓库迁移。
 - Git：以 `feat(commerce): add governed data ingestion` 独立提交 02 文件；提交后工作树仅保留用户原先暂存的 `packages/core/src/types/index.ts`。
+
+## 03 实施记录（当前工作区）
+
+- 状态：CODE_READY；真实 PostgreSQL RLS/连接池和外部企业 IdP B07 为 BLOCKED_EXTERNAL。
+- Plan：在 01/02 可信 scope 与 snapshot 基础上实现身份、会话、业务 API、Proposal v2、审批策略和执行前撤权重验，不把宿主 token 或请求 actor 当业务授权。
+- Execute：实现 OIDC Authorization Code + PKCE/JWKS、opaque session、membership/shop grants/RBAC、Cookie/CSRF/CORS；新增独立 `/api/v1` handler、task 幂等与 scoped 读取；审批绑定 proposalHash/policy/snapshot/targetVersion 并禁止自审；执行要求 service identity，可重查原审批人；旧 CLI 仅在显式 local-test 模式可用。
+- PostgreSQL：新增 `0002_identity_authorization_rls.sql`、FORCE RLS policy 和 transaction-local `set_config` helper。当前没有应用角色测试库，不能标 RLS_VERIFIED。
+- Verify：Bun 1.4.2；`commerce:typecheck` exit 0；完整 `commerce:test` 为 141 passed / 0 failed / 449 assertions。本地签名 IdP 通过真实 loopback HTTP authorize/token/JWKS，state replay 被拒绝。
+- Review：跨 tenant 对象统一 404；同 tenant 未授权 shop 拒绝；Idempotency-Key 同 payload replay、异 payload 409；approve/reject 竞态仅一个终态；审批人撤销后执行 fail-closed。未将本地 IdP 称为企业 SSO。
+- Handoff：`packages/commerce-agent/docs/implementation/03/{identity-adr,permissions,api,acceptance,handoff}.md`。04 应复用 service principal 与 approvalGuard，不恢复任意 actor 字符串。
+- Git：待本轮精确暂存并提交；用户已有 `packages/core/src/types/index.ts` 暂存修改不纳入。
 
 ## 执行批次模板
 

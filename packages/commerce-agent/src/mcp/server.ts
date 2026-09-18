@@ -20,6 +20,7 @@ import { CommerceDatabase } from '../storage/database.ts'
 import { SqliteDataGovernanceRepository } from '../storage/sqlite-data-governance-repository.ts'
 import { ProposalRepository } from '../approvals/repository.ts'
 import { ProposalService } from '../approvals/proposal-service.ts'
+import { localTestPrincipal } from '../auth/local-test.ts'
 import { computeMarginTool } from '../tools/compute-margin.ts'
 import { getEvidenceTool } from '../tools/get-evidence.ts'
 import { queryAdsTool } from '../tools/query-ads.ts'
@@ -78,6 +79,7 @@ export type CommerceServerOptions = {
   traceRecorder?: TraceRecorder
   runner?: ToolRunner
   now?: () => Date
+  requestedBy?: string
   dataSource?:
     | { type: 'fixture' }
     | { type: 'imported'; tenantId: string; snapshotId: string }
@@ -141,6 +143,16 @@ export function createCommerceServer(options: CommerceServerOptions): CommerceSe
     evidence,
     reports,
     proposals,
+    principal: localTestPrincipal({
+      actorId: options.requestedBy ?? 'commerce-agent',
+      tenantId: options.dataSource?.type === 'imported' ? options.dataSource.tenantId : 'local-tenant',
+      shopIds: [options.allowedShopId],
+      roles: ['OPERATOR'],
+      authSource: options.dataSource?.type === 'imported' ? 'service-identity' : 'local-test',
+    }),
+    proposalContext: options.dataSource?.type === 'imported'
+      ? { shopId: options.allowedShopId, snapshotId: options.dataSource.snapshotId, reviewStatus: 'PENDING_REVIEW' }
+      : undefined,
     now: options.now ?? (() => new Date()),
   }
   const handlers: Record<CommerceToolName, (
@@ -204,6 +216,7 @@ export async function startStdioServer(): Promise<void> {
     allowedShopId,
     reportDir,
     dbPath,
+    requestedBy: process.env.COMMERCE_REQUESTED_BY,
     traceRecorder: createTraceRecorderFromEnvironment(),
     dataSource: dataMode === 'imported'
       ? {

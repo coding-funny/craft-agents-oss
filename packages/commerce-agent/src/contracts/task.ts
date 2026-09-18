@@ -20,7 +20,7 @@ export const PrincipalContextSchema = z.object({
   tenantId: IdentifierSchema,
   allowedShopIds: z.array(IdentifierSchema).min(1),
   permissions: z.array(z.enum(['investigate', 'read_evidence', 'read_report'])),
-  authSource: z.literal('local-fixture'),
+  authSource: z.enum(['local-fixture', 'oidc-session', 'service-identity', 'local-test']),
 }).strict()
 
 export const ResolvedScopeSchema = z.object({

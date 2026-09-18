@@ -14,6 +14,7 @@ import { MockExecutor } from '../execution/mock-executor.ts'
 import { ReportRepository } from '../reports/report-repository.ts'
 import { CommerceDatabase } from '../storage/database.ts'
 import { CaseRepository, type CaseRun, type CaseRunState } from './case-repository.ts'
+import { localTestPrincipal } from '../auth/local-test.ts'
 
 export type RecoveryRunnerOptions = {
   rootDir: string
@@ -76,6 +77,11 @@ export async function runRecoverableCase(options: RecoveryRunnerOptions): Promis
   const startedAt = performance.now()
   const timeoutMs = options.timeoutMs ?? 30_000
   const now = options.now ?? (() => new Date())
+  const requester = localTestPrincipal({ actorId: 'demo-requester', roles: ['OPERATOR'] })
+  const approver = localTestPrincipal({ actorId: options.actor ?? 'demo-approver', roles: ['APPROVER'] })
+  const executionPrincipal = localTestPrincipal({
+    actorId: 'demo-execution-service', roles: ['EXECUTOR'], authSource: 'service-identity',
+  })
   const dbPath = resolve(options.rootDir, 'commerce.sqlite')
   const reportDir = resolve(options.rootDir, 'reports')
   const store = new CommerceDatabase(dbPath)
@@ -153,6 +159,7 @@ export async function runRecoverableCase(options: RecoveryRunnerOptions): Promis
         reportId: report.reportId,
         recommendationId: report.recommendations[0]!.recommendationId,
         expiresAt: new Date(now().getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        principal: requester,
       })
       run = cases.update({
         sessionId: run.sessionId,
@@ -171,14 +178,15 @@ export async function runRecoverableCase(options: RecoveryRunnerOptions): Promis
     if (proposal.status === 'PENDING_APPROVAL') {
       proposal = approvals.approve({
         proposalId: proposal.proposalId,
-        actor: options.actor ?? 'demo-operator',
+        principal: approver,
         reason: 'Explicit operator approval in the recoverable demo runner.',
+        confirmHash: proposal.contentHash,
       })
       run = cases.update({ sessionId: run.sessionId, state: 'APPROVED', eventType: 'OPERATOR_APPROVED', now: now().toISOString() })
     }
     if (proposal.status === 'UNKNOWN') {
       if (!options.reconcileUnknown) return complete('Execution remains UNKNOWN pending reconciliation.', report.traceId)
-      const reconciled = executions.reconcile({ proposalId: proposal.proposalId, actor: options.actor ?? 'demo-operator' })
+      const reconciled = executions.reconcile({ proposalId: proposal.proposalId, principal: executionPrincipal })
       run = cases.update({
         sessionId: run.sessionId,
         state: reconciled.status,
@@ -200,7 +208,7 @@ export async function runRecoverableCase(options: RecoveryRunnerOptions): Promis
     run = cases.update({ sessionId: run.sessionId, state: 'EXECUTING', eventType: 'EXECUTION_DISPATCHED', now: now().toISOString() })
     const execution = executions.execute({
       proposalId: proposal.proposalId,
-      actor: options.actor ?? 'demo-operator',
+      principal: executionPrincipal,
       simulateResponseLoss: options.simulateResponseLoss,
     })
     run = cases.update({
@@ -213,7 +221,7 @@ export async function runRecoverableCase(options: RecoveryRunnerOptions): Promis
     if (options.stopAfter === 'EXECUTION_UNKNOWN' || run.state !== 'UNKNOWN' || !options.reconcileUnknown) {
       return complete(`Execution reached ${run.state}.`, report.traceId)
     }
-    const reconciled = executions.reconcile({ proposalId: proposal.proposalId, actor: options.actor ?? 'demo-operator' })
+    const reconciled = executions.reconcile({ proposalId: proposal.proposalId, principal: executionPrincipal })
     run = cases.update({
       sessionId: run.sessionId,
       state: reconciled.status,

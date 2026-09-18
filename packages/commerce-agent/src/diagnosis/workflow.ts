@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { FixtureAdapter } from '../adapters/fixture-adapter.ts'
 import type { TimeRange, ToolEnvelope } from '../domain/contracts.ts'
 import { CommerceError } from '../domain/errors.ts'
+import { localTestPrincipal } from '../auth/local-test.ts'
 import { EvidenceRepository } from '../evidence/evidence-repository.ts'
 import { ToolRunner, type ToolExecutionContext } from '../mcp/tool-runner.ts'
 import type { TraceRecorder } from '../mcp/trace.ts'
@@ -143,6 +144,7 @@ export async function runDiagnosisCase(
     evidence,
     reports,
     proposals,
+    principal: localTestPrincipal({ actorId: 'diagnosis-agent', roles: ['OPERATOR'] }),
     now: () => new Date(GENERATED_AT),
   }
   const runner = new ToolRunner({ traceRecorder: options.traceRecorder })

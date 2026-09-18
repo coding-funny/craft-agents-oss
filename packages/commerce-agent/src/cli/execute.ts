@@ -3,9 +3,9 @@ import { argument, createCliRuntime, failCli, hasFlag, print } from './runtime.t
 
 function main(): void {
   const proposalId = argument('--proposal')
-  const actor = argument('--actor') ?? 'local-operator'
-  if (!proposalId) throw new Error('Usage: --proposal <proposal_id> [--actor <id>] [--simulate-response-loss]')
-  print(createCliRuntime().executions.execute({ proposalId, actor, simulateResponseLoss: hasFlag('--simulate-response-loss') }))
+  if (!proposalId) throw new Error('Usage: --proposal <proposal_id> [--simulate-response-loss]')
+  const runtime = createCliRuntime()
+  print(runtime.executions.execute({ proposalId, principal: runtime.executorPrincipal, simulateResponseLoss: hasFlag('--simulate-response-loss') }))
 }
 
 try { main() } catch (error) { failCli(error) }

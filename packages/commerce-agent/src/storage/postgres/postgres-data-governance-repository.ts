@@ -8,6 +8,8 @@ import {
   type ImportBatchResult,
 } from '../../data/contracts.ts'
 import { stableId } from '../../data/hash.ts'
+import type { AuthenticatedPrincipal } from '../../auth/contracts.ts'
+import { withPostgresSecurityContext } from '../postgres-security-context.ts'
 import type {
   AppendRecordResult,
   CommitSnapshotInput,
@@ -231,43 +233,45 @@ class PostgresDataGovernanceTransaction implements DataGovernanceTransaction {
 
 export class PostgresDataGovernanceRepository implements DataGovernanceRepository {
   readonly #sql: Bun.SQL
+  readonly #principal: AuthenticatedPrincipal
 
-  constructor(sql: Bun.SQL) {
+  constructor(sql: Bun.SQL, principal: AuthenticatedPrincipal) {
     this.#sql = sql
+    this.#principal = principal
   }
 
   async transaction<T>(work: (tx: DataGovernanceTransaction) => Promise<T>): Promise<T> {
-    return this.#sql.transaction(async sql => work(new PostgresDataGovernanceTransaction(sql)))
+    return withPostgresSecurityContext(this.#sql, this.#principal, async sql => work(new PostgresDataGovernanceTransaction(sql)))
   }
 
   async classifyRecord(input: ScopedDataRecordInput): Promise<RecordDisposition> {
-    const existing = await latestRecord(this.#sql, input)
+    const existing = await withPostgresSecurityContext(this.#sql, this.#principal, sql => latestRecord(sql, input))
     if (!existing) return 'accepted'
     return existing.content_hash === input.contentHash ? 'duplicate' : 'revised'
   }
 
   async getImport(importId: string): Promise<ImportBatchResult | undefined> {
-    const rows = await this.#sql<Array<{ result_json: unknown }>>`
+    const rows = await withPostgresSecurityContext(this.#sql, this.#principal, sql => sql<Array<{ result_json: unknown }>>`
       SELECT result_json FROM commerce_imports
       WHERE import_id = ${importId} AND result_json IS NOT NULL
-    `
+    `)
     return rows[0] ? ImportBatchResultSchema.parse(json(rows[0].result_json)) : undefined
   }
 
   async getSnapshot(scope: { tenantId: string; shopId: string; snapshotId: string }): Promise<DataSnapshot | undefined> {
-    const rows = await this.#sql<Array<{ snapshot_json: unknown }>>`
+    const rows = await withPostgresSecurityContext(this.#sql, this.#principal, sql => sql<Array<{ snapshot_json: unknown }>>`
       SELECT snapshot_json FROM commerce_snapshots
       WHERE tenant_id = ${scope.tenantId} AND shop_id = ${scope.shopId} AND snapshot_id = ${scope.snapshotId}
-    `
+    `)
     return rows[0] ? DataSnapshotSchema.parse(json(rows[0].snapshot_json)) : undefined
   }
 
   async resolveSnapshot(scope: { tenantId: string; shopId: string; asOf: string }): Promise<DataSnapshot | undefined> {
-    const rows = await this.#sql<Array<{ snapshot_json: unknown }>>`
+    const rows = await withPostgresSecurityContext(this.#sql, this.#principal, sql => sql<Array<{ snapshot_json: unknown }>>`
       SELECT snapshot_json FROM commerce_snapshots
       WHERE tenant_id = ${scope.tenantId} AND shop_id = ${scope.shopId} AND as_of <= ${scope.asOf}
       ORDER BY as_of DESC, created_at DESC LIMIT 1
-    `
+    `)
     return rows[0] ? DataSnapshotSchema.parse(json(rows[0].snapshot_json)) : undefined
   }
 
@@ -285,13 +289,13 @@ export class PostgresDataGovernanceRepository implements DataGovernanceRepositor
         AND records.shop_id = membership.shop_id
       WHERE membership.tenant_id = $1 AND membership.shop_id = $2 AND membership.snapshot_id = $3
     `
-    const rows = scope.kind
-      ? await this.#sql.unsafe<PgRecordRow[]>(`${base} AND records.kind = $4 ORDER BY records.source_record_id`, [
-          scope.tenantId, scope.shopId, scope.snapshotId, scope.kind,
-        ])
-      : await this.#sql.unsafe<PgRecordRow[]>(`${base} ORDER BY records.kind, records.source_record_id`, [
-          scope.tenantId, scope.shopId, scope.snapshotId,
-        ])
+    const rows = await withPostgresSecurityContext(this.#sql, this.#principal, async sql => scope.kind
+      ? sql.unsafe<PgRecordRow[]>(`${base} AND records.kind = $4 ORDER BY records.source_record_id`, [
+        scope.tenantId, scope.shopId, scope.snapshotId, scope.kind,
+      ])
+      : sql.unsafe<PgRecordRow[]>(`${base} ORDER BY records.kind, records.source_record_id`, [
+        scope.tenantId, scope.shopId, scope.snapshotId,
+      ]))
     return rows.map(recordFromRow)
   }
 }

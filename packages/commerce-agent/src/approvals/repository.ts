@@ -24,6 +24,13 @@ export type Proposal = {
   reportId: string
   recommendationId: string
   traceId: string
+  tenantId: string
+  shopId: string
+  requestedBy: string
+  snapshotId: string
+  reviewStatus: 'PENDING_REVIEW' | 'REVIEWED' | 'REJECTED' | 'LEGACY_DEMO'
+  policyVersion: string
+  targetVersion: number
   evidenceIds: string[]
   actionType: ActionType
   targetId: string
@@ -46,8 +53,12 @@ export type ApprovalRecord = {
   proposalId: string
   decision: 'APPROVED' | 'REJECTED'
   actor: string
+  subject: string
+  sessionId?: string
   reason: string
   contentHash: string
+  policyVersion: string
+  reasonCode: string
   createdAt: string
 }
 
@@ -66,6 +77,8 @@ export type ExecutionAttempt = {
 
 type ProposalRow = {
   proposal_id: string; report_id: string; recommendation_id: string; trace_id: string
+  tenant_id: string; shop_id: string; requested_by: string; snapshot_id: string
+  review_status: Proposal['reviewStatus']; policy_version: string; target_version: number
   evidence_ids_json: string; action_type: ActionType; target_id: string; params_json: string
   risk_level: Proposal['riskLevel']; expected_impact: string; rollback_plan: string
   content_hash: string; idempotency_key: string; created_at: string; expires_at: string
@@ -74,7 +87,8 @@ type ProposalRow = {
 
 type ApprovalRow = {
   approval_id: string; proposal_id: string; decision: ApprovalRecord['decision']; actor: string
-  reason: string; content_hash: string; created_at: string
+  subject: string; session_id: string | null; reason: string; content_hash: string
+  policy_version: string; reason_code: string; created_at: string
 }
 
 type AttemptRow = {
@@ -89,6 +103,13 @@ function proposalFromRow(row: ProposalRow): Proposal {
     reportId: row.report_id,
     recommendationId: row.recommendation_id,
     traceId: row.trace_id,
+    tenantId: row.tenant_id,
+    shopId: row.shop_id,
+    requestedBy: row.requested_by,
+    snapshotId: row.snapshot_id,
+    reviewStatus: row.review_status,
+    policyVersion: row.policy_version,
+    targetVersion: row.target_version,
     evidenceIds: JSON.parse(row.evidence_ids_json) as string[],
     actionType: row.action_type,
     targetId: row.target_id,
@@ -145,12 +166,15 @@ export class ProposalRepository {
   insert(proposal: Proposal): Proposal {
     this.#db.query(`
       INSERT INTO proposals (
-        proposal_id, report_id, recommendation_id, trace_id, evidence_ids_json, action_type,
+        proposal_id, report_id, recommendation_id, trace_id, tenant_id, shop_id, requested_by,
+        snapshot_id, review_status, policy_version, target_version, evidence_ids_json, action_type,
         target_id, params_json, risk_level, expected_impact, rollback_plan, content_hash,
         idempotency_key, created_at, expires_at, status, version
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)
     `).run(
       proposal.proposalId, proposal.reportId, proposal.recommendationId, proposal.traceId,
+      proposal.tenantId, proposal.shopId, proposal.requestedBy, proposal.snapshotId,
+      proposal.reviewStatus, proposal.policyVersion, proposal.targetVersion,
       JSON.stringify(proposal.evidenceIds), proposal.actionType, proposal.targetId,
       JSON.stringify(proposal.parameters), proposal.riskLevel, proposal.expectedImpact,
       proposal.rollbackPlan, proposal.contentHash, proposal.idempotencyKey, proposal.createdAt,
@@ -190,10 +214,14 @@ export class ProposalRepository {
   }
 
   insertApproval(record: ApprovalRecord): void {
-    this.#db.query(`
-      INSERT INTO approvals (approval_id, proposal_id, decision, actor, reason, content_hash, created_at)
-      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-    `).run(record.approvalId, record.proposalId, record.decision, record.actor, record.reason, record.contentHash, record.createdAt)
+    this.#db.query(`INSERT INTO approvals (
+      approval_id, proposal_id, decision, actor, subject, session_id, reason, content_hash,
+      policy_version, reason_code, created_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`).run(
+      record.approvalId, record.proposalId, record.decision, record.actor, record.subject,
+      record.sessionId ?? null, record.reason, record.contentHash, record.policyVersion,
+      record.reasonCode, record.createdAt,
+    )
   }
 
   latestApproval(proposalId: string): ApprovalRecord | undefined {
@@ -205,8 +233,12 @@ export class ProposalRepository {
       proposalId: row.proposal_id,
       decision: row.decision,
       actor: row.actor,
+      subject: row.subject,
+      sessionId: row.session_id ?? undefined,
       reason: row.reason,
       contentHash: row.content_hash,
+      policyVersion: row.policy_version,
+      reasonCode: row.reason_code,
       createdAt: row.created_at,
     } : undefined
   }

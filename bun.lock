@@ -230,6 +230,7 @@
         "@craft-agent/shared": "workspace:*",
         "@earendil-works/pi-ai": "0.85.1",
         "@modelcontextprotocol/sdk": "^1.29.0",
+        "jose": "^6.0.0",
         "zod": "^4.0.0",
       },
       "devDependencies": {

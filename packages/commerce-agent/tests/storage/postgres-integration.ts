@@ -1,6 +1,8 @@
 import { resolve } from 'node:path'
 import { stableId } from '../../src/data/hash.ts'
 import { createPostgresClient, runPostgresMigrations } from '../../src/storage/postgres/client.ts'
+import { withPostgresSecurityContext } from '../../src/storage/postgres-security-context.ts'
+import { localTestPrincipal } from '../../src/auth/local-test.ts'
 
 const connectionString = process.env.COMMERCE_TEST_DATABASE_URL
 if (!connectionString) {
@@ -16,8 +18,12 @@ try {
   if (second.some(migration => migration.applied)) throw new Error('Repeated migration was not idempotent')
 
   const importId = stableId('import', { test: crypto.randomUUID() })
+  const principal = localTestPrincipal({
+    actorId: 'postgres-integration', tenantId: 'integration-tenant', shopIds: ['integration-shop'],
+    roles: ['ADMIN'], authSource: 'service-identity',
+  })
   try {
-    await sql.transaction(async tx => {
+    await withPostgresSecurityContext(sql, principal, async tx => {
       await tx`
         INSERT INTO commerce_imports (
           import_id, tenant_id, shop_id, source_type, source_id, status,
@@ -32,9 +38,9 @@ try {
   } catch (error) {
     if (!(error instanceof Error) || error.message !== 'intentional rollback') throw error
   }
-  const rows = await sql<Array<{ count: number }>>`
+  const rows = await withPostgresSecurityContext(sql, principal, async scoped => scoped<Array<{ count: number }>>`
     SELECT COUNT(*)::int AS count FROM commerce_imports WHERE import_id = ${importId}
-  `
+  `)
   if (rows[0]?.count !== 0) throw new Error('PostgreSQL transaction rollback left a partial import')
   console.log(JSON.stringify({
     status: 'POSTGRES_VERIFIED',

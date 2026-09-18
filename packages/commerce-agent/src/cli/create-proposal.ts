@@ -9,7 +9,7 @@ async function main(): Promise<void> {
   const recommendationId = argument('--recommendation') ?? report.recommendations[0]?.recommendationId
   if (!recommendationId) throw new Error('Report has no recommendation')
   const expiresAt = argument('--expires-at') ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-  print(await runtime.proposals.create({ reportId, recommendationId, expiresAt }))
+  print(await runtime.proposals.create({ reportId, recommendationId, expiresAt, principal: runtime.operatorPrincipal }))
 }
 
 main().catch(failCli)
