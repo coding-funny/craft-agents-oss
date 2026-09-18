@@ -1,0 +1,42 @@
+[
+  {
+    "shopId": "demo-shop",
+    "productId": "P-TSHIRT",
+    "skuId": "SKU-A",
+    "spec": "red-M",
+    "currency": "CNY",
+    "unitCostMinor": 5000,
+    "fulfillmentCostMinor": 500,
+    "platformFeeRateBps": 1000
+  },
+  {
+    "shopId": "demo-shop",
+    "productId": "P-TSHIRT",
+    "skuId": "SKU-B",
+    "spec": "red-L",
+    "currency": "CNY",
+    "unitCostMinor": 3000,
+    "fulfillmentCostMinor": 200,
+    "platformFeeRateBps": 1000
+  },
+  {
+    "shopId": "demo-shop",
+    "productId": "P-HEADPHONE",
+    "skuId": "SKU-C",
+    "spec": "standard",
+    "currency": "CNY",
+    "unitCostMinor": 4000,
+    "fulfillmentCostMinor": 300,
+    "platformFeeRateBps": 1000
+  },
+  {
+    "shopId": "demo-shop",
+    "productId": "P-IDLE",
+    "skuId": "SKU-Z",
+    "spec": "zero-sales-control",
+    "currency": "CNY",
+    "unitCostMinor": 2000,
+    "fulfillmentCostMinor": 200,
+    "platformFeeRateBps": 1000
+  }
+]

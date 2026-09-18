@@ -1,0 +1,4 @@
+{
+  "dev": ["normal-01", "normal-02", "normal-03", "ads-01", "ads-02", "ads-03", "ads-04", "ads-05", "commerce-01", "commerce-02", "commerce-03", "commerce-04", "commerce-05", "uncertain-01", "uncertain-02", "uncertain-03", "uncertain-04", "failure-01", "failure-02", "failure-03"],
+  "smoke": ["normal-01", "ads-01", "commerce-01", "uncertain-02", "failure-01"]
+}

@@ -1,0 +1,234 @@
+{
+  "traceId": "trace-ads-conversion-001",
+  "caseId": "ads-conversion",
+  "generatedAt": "2026-09-15T09:00:00+08:00",
+  "status": "RESOLVED",
+  "scope": {
+    "shopId": "demo-shop",
+    "skuIds": [
+      "SKU-C"
+    ],
+    "baselineWindow": {
+      "start": "2026-09-01T00:00:00+08:00",
+      "end": "2026-09-08T00:00:00+08:00",
+      "timezone": "Asia/Shanghai"
+    },
+    "currentWindow": {
+      "start": "2026-09-08T00:00:00+08:00",
+      "end": "2026-09-15T00:00:00+08:00",
+      "timezone": "Asia/Shanghai"
+    },
+    "currency": "CNY"
+  },
+  "executiveSummary": {
+    "statement": "Higher ad spend coincides with weaker attributed efficiency and lower net sales.",
+    "evidenceIds": [
+      "ev_b1dd94611042edce9de0cba9",
+      "ev_c76c1b41c2c68999253484ed",
+      "ev_d7563a0275403ad2dcf33c4a",
+      "ev_78029fdf21cb82310d58cb9e"
+    ]
+  },
+  "kpis": [
+    {
+      "name": "net_sales",
+      "baseline": {
+        "value": 100000,
+        "unit": "CNY_minor",
+        "evidenceIds": [
+          "ev_b1dd94611042edce9de0cba9"
+        ]
+      },
+      "current": {
+        "value": 80000,
+        "unit": "CNY_minor",
+        "evidenceIds": [
+          "ev_c76c1b41c2c68999253484ed"
+        ]
+      },
+      "changeRate": -0.2
+    },
+    {
+      "name": "ad_spend",
+      "baseline": {
+        "value": 20000,
+        "unit": "CNY_minor",
+        "evidenceIds": [
+          "ev_d7563a0275403ad2dcf33c4a"
+        ]
+      },
+      "current": {
+        "value": 50000,
+        "unit": "CNY_minor",
+        "evidenceIds": [
+          "ev_78029fdf21cb82310d58cb9e"
+        ]
+      },
+      "changeRate": 1.5
+    },
+    {
+      "name": "ad_ctr",
+      "baseline": {
+        "value": 0.05,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_d7563a0275403ad2dcf33c4a"
+        ]
+      },
+      "current": {
+        "value": 0.05,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_78029fdf21cb82310d58cb9e"
+        ]
+      },
+      "changeRate": 0
+    },
+    {
+      "name": "ad_cvr",
+      "baseline": {
+        "value": 0.04,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_d7563a0275403ad2dcf33c4a"
+        ]
+      },
+      "current": {
+        "value": 0.016,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_78029fdf21cb82310d58cb9e"
+        ]
+      },
+      "changeRate": -0.6
+    },
+    {
+      "name": "ad_cpc",
+      "baseline": {
+        "value": 40,
+        "unit": "CNY_minor_per_click",
+        "evidenceIds": [
+          "ev_d7563a0275403ad2dcf33c4a"
+        ]
+      },
+      "current": {
+        "value": 50,
+        "unit": "CNY_minor_per_click",
+        "evidenceIds": [
+          "ev_78029fdf21cb82310d58cb9e"
+        ]
+      },
+      "changeRate": 0.25
+    },
+    {
+      "name": "ad_roas",
+      "baseline": {
+        "value": 5,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_d7563a0275403ad2dcf33c4a"
+        ]
+      },
+      "current": {
+        "value": 1.6,
+        "unit": "ratio",
+        "evidenceIds": [
+          "ev_78029fdf21cb82310d58cb9e"
+        ]
+      },
+      "changeRate": -0.68
+    }
+  ],
+  "anomalies": [
+    {
+      "kind": "FACT",
+      "statement": "Advertising spend increased while attributed conversion rate, ROAS, and net sales decreased.",
+      "evidenceIds": [
+        "ev_b1dd94611042edce9de0cba9",
+        "ev_c76c1b41c2c68999253484ed",
+        "ev_d7563a0275403ad2dcf33c4a",
+        "ev_78029fdf21cb82310d58cb9e"
+      ]
+    }
+  ],
+  "hypotheses": [
+    {
+      "kind": "HYPOTHESIS",
+      "statement": "Advertising spend increased while attributed conversion rate decreased. This signal is associated with the lower sales outcome in the current window.",
+      "confidence": "HIGH",
+      "confidenceScore": 0.89,
+      "supportingEvidenceIds": [
+        "ev_b1dd94611042edce9de0cba9",
+        "ev_c76c1b41c2c68999253484ed",
+        "ev_d7563a0275403ad2dcf33c4a",
+        "ev_78029fdf21cb82310d58cb9e"
+      ],
+      "counterEvidenceIds": [],
+      "limitations": [
+        "Attributed orders are not equivalent to total orders.",
+        "The comparison does not identify natural-traffic sessions."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidenceId": "ev_78029fdf21cb82310d58cb9e",
+      "source": "fixture-v1/ads.json",
+      "asOf": "2026-09-15T09:00:00+08:00",
+      "summary": "query_ads returned 2 fixture record(s)"
+    },
+    {
+      "evidenceId": "ev_b1dd94611042edce9de0cba9",
+      "source": "fixture-v1/sales.json",
+      "asOf": "2026-09-15T09:00:00+08:00",
+      "summary": "query_sales returned 2 fixture record(s)"
+    },
+    {
+      "evidenceId": "ev_c76c1b41c2c68999253484ed",
+      "source": "fixture-v1/sales.json",
+      "asOf": "2026-09-15T09:00:00+08:00",
+      "summary": "query_sales returned 2 fixture record(s)"
+    },
+    {
+      "evidenceId": "ev_d7563a0275403ad2dcf33c4a",
+      "source": "fixture-v1/ads.json",
+      "asOf": "2026-09-15T09:00:00+08:00",
+      "summary": "query_ads returned 2 fixture record(s)"
+    }
+  ],
+  "risks": [
+    "Fixture evidence demonstrates the workflow but is not production platform data."
+  ],
+  "unknowns": [],
+  "recommendations": [
+    {
+      "recommendationId": "rec-ad-budget-review",
+      "kind": "RECOMMENDATION",
+      "action": "Prepare a campaign-level budget review proposal and inspect search terms and audience segments.",
+      "rationale": "Spend rose while CVR and ROAS declined in the aligned window.",
+      "riskLevel": "MEDIUM",
+      "evidenceIds": [
+        "ev_b1dd94611042edce9de0cba9",
+        "ev_c76c1b41c2c68999253484ed",
+        "ev_d7563a0275403ad2dcf33c4a",
+        "ev_78029fdf21cb82310d58cb9e"
+      ],
+      "actionDraft": {
+        "actionType": "ADJUST_AD_BUDGET",
+        "targetId": "CAMPAIGN-C",
+        "parameters": {
+          "newBudgetMinor": 30000,
+          "currency": "CNY",
+          "expectedVersion": 1
+        },
+        "preconditions": [
+          "Campaign version remains 1.",
+          "The proposal receives an unexpired human approval."
+        ],
+        "expectedImpact": "Reduce the mock campaign budget while conversion efficiency is reviewed.",
+        "rollbackPlan": "Restore the previous mock campaign budget using a separately approved proposal."
+      }
+    }
+  ],
+  "reportId": "report_20d555564f9f5ab3528baef5"
+}

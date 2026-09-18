@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "dataMode": "fixture",
+  "model": {
+    "mode": "fake",
+    "scriptPath": "./fake-script.json"
+  },
+  "principal": {
+    "actorId": "local-interviewer-demo",
+    "tenantId": "local-demo-tenant",
+    "allowedShopIds": ["demo-shop"],
+    "permissions": ["investigate", "read_evidence", "read_report"],
+    "authSource": "local-fixture"
+  },
+  "fixtureDir": "../../packages/commerce-agent/fixtures",
+  "dbPath": "../../packages/commerce-agent/demo/runtime/investigation.sqlite",
+  "reportDir": "../../packages/commerce-agent/demo/runtime/investigation-reports",
+  "traceFile": "../../packages/commerce-agent/demo/runtime/investigation.trace.jsonl",
+  "asOf": "2026-09-15T09:00:00+08:00",
+  "budget": {
+    "maxSteps": 8,
+    "maxModelRequests": 10,
+    "maxToolCalls": 16,
+    "maxToolAttempts": 24,
+    "maxParallelTools": 2,
+    "maxReportRepairs": 2,
+    "maxContextInputTokens": 12000,
+    "maxOutputTokensPerRequest": 2048,
+    "maxTotalInputTokens": 48000,
+    "maxTotalOutputTokens": 12000,
+    "runTimeoutMs": 120000,
+    "toolTimeoutMs": 10000,
+    "maxEstimatedCostMicros": 500000,
+    "priceVersion": "local-demo-v1"
+  }
+}

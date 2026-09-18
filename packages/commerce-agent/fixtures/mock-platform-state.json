@@ -1,0 +1,12 @@
+{
+  "campaigns": {
+    "CAMPAIGN-C": {
+      "budgetMinor": 50000,
+      "currency": "CNY",
+      "status": "ACTIVE",
+      "version": 1
+    }
+  },
+  "replenishmentTasks": [],
+  "promotionTickets": []
+}
