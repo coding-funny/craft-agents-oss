@@ -46,3 +46,9 @@ jobs:
 
       - name: Validate commerce evaluation contracts
         run: bun run commerce:test:eval-agent
+
+      - name: Validate commerce operations workbench
+        run: |
+          bun run commerce:test:operations
+          bun run webui:typecheck
+          bun run webui:build

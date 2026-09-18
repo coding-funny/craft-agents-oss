@@ -124,4 +124,28 @@ describe('authenticated commerce API boundary', () => {
     })
     expect((await api.fetch(request('/api/v1/me', { token: tokenA }))).status).toBe(401)
   })
+
+  it('issues a rotated CSRF token without exposing the session secret', async () => {
+    const { api, tokenA } = harness()
+    const issued = await api.fetch(request('/api/v1/csrf-token', { token: tokenA }))
+    expect(issued.status).toBe(200)
+    const csrfToken = (await issued.json() as { data: { csrfToken: string } }).data.csrfToken
+    expect(csrfToken).not.toContain(tokenA)
+    expect((await api.fetch(request('/api/v1/tasks', { token: tokenA, csrf: 'tenant-a-csrf', key: 'request-old-csrf', body: input(), origin: ORIGIN }))).status).toBe(403)
+    expect((await api.fetch(request('/api/v1/tasks', { token: tokenA, csrf: csrfToken, key: 'request-new-csrf', body: input(), origin: ORIGIN }))).status).toBe(201)
+  })
+
+  it('lists scoped tasks and returns a refresh-safe workbench snapshot', async () => {
+    const { api, tokenA, tokenB } = harness()
+    const created = await api.fetch(request('/api/v1/tasks', { token: tokenA, csrf: 'tenant-a-csrf', key: 'request-workbench', body: input(), origin: ORIGIN }))
+    const taskId = (await created.json() as { data: { taskId: string } }).data.taskId
+    const list = await api.fetch(request('/api/v1/tasks?limit=30', { token: tokenA }))
+    expect((await list.json() as { data: { items: Array<{ taskId: string }> } }).data.items.map(item => item.taskId)).toEqual([taskId])
+    const snapshot = await api.fetch(request(`/api/v1/tasks/${taskId}/snapshot`, { token: tokenA }))
+    const body = await snapshot.json() as { data: { snapshotVersion: string; events: unknown[]; task: { taskId: string } } }
+    expect(body.data.task.taskId).toBe(taskId)
+    expect(body.data.snapshotVersion).toContain(':')
+    expect(body.data.events).toEqual([])
+    expect((await api.fetch(request('/api/v1/tasks?limit=30', { token: tokenB }))).status).toBe(200)
+  })
 })

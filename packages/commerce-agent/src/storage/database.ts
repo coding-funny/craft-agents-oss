@@ -432,6 +432,88 @@ export class CommerceDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_execution_requests_reconcile
         ON commerce_execution_requests(status, next_lookup_at);
+      CREATE TABLE IF NOT EXISTS commerce_detected_cases (
+        case_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        anomaly_type TEXT NOT NULL,
+        rule_version TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        status TEXT NOT NULL,
+        task_id TEXT,
+        first_window_start TEXT NOT NULL,
+        latest_window_end TEXT NOT NULL,
+        cooldown_until TEXT NOT NULL,
+        notification_count INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_detected_cases_scope
+        ON commerce_detected_cases(tenant_id, shop_id, anomaly_type, entity_id, updated_at DESC);
+      CREATE TABLE IF NOT EXISTS commerce_case_observations (
+        observation_id TEXT PRIMARY KEY,
+        case_id TEXT NOT NULL,
+        snapshot_id TEXT NOT NULL,
+        window_start TEXT NOT NULL,
+        window_end TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        metrics_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(case_id, snapshot_id),
+        FOREIGN KEY(case_id) REFERENCES commerce_detected_cases(case_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_feedback (
+        feedback_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        report_id TEXT NOT NULL,
+        report_version TEXT NOT NULL,
+        claim_id TEXT,
+        evidence_id TEXT,
+        kind TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        actor_role TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL,
+        payload_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(tenant_id, actor_id, idempotency_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_feedback_scope
+        ON commerce_feedback(tenant_id, shop_id, created_at DESC);
+      CREATE TABLE IF NOT EXISTS commerce_eval_candidates (
+        candidate_id TEXT PRIMARY KEY,
+        feedback_id TEXT NOT NULL UNIQUE,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        source_task_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        sanitized_payload_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        reviewed_at TEXT,
+        FOREIGN KEY(feedback_id) REFERENCES commerce_feedback(feedback_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_case_memory (
+        memory_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        anomaly_type TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        report_id TEXT NOT NULL,
+        evidence_ids_json TEXT NOT NULL,
+        reviewed_by TEXT NOT NULL,
+        reviewed_at TEXT NOT NULL,
+        valid_until TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_case_memory_scope
+        ON commerce_case_memory(tenant_id, shop_id, anomaly_type, entity_id, reviewed_at DESC);
     `)
     ensureColumn(this.database, 'reports', 'tenant_id', 'TEXT')
     ensureColumn(this.database, 'reports', 'shop_id', 'TEXT')

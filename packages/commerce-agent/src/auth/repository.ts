@@ -172,6 +172,11 @@ export class IdentityRepository {
     this.#db.query('UPDATE commerce_sessions SET revoked_at = ?1 WHERE token_hash = ?2 AND revoked_at IS NULL').run(now, tokenHash)
   }
 
+  rotateSessionCsrf(sessionId: string, csrfHash: string): void {
+    const updated = this.#db.query('UPDATE commerce_sessions SET csrf_hash = ?1 WHERE session_id = ?2 AND revoked_at IS NULL').run(csrfHash, sessionId)
+    if (updated.changes !== 1) throw new CommerceError('SCOPE_DENIED', 'Session is invalid or expired')
+  }
+
   assertApprovalStillAuthorized(proposal: Proposal, approval: ApprovalRecord | undefined): void {
     if (!approval || approval.policyVersion !== APPROVAL_POLICY_VERSION || proposal.policyVersion !== APPROVAL_POLICY_VERSION) {
       throw new CommerceError('SCOPE_DENIED', 'Approval policy binding is stale')

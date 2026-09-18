@@ -5,7 +5,7 @@ import { createInvestigationTask } from '../contracts/task.ts'
 import { CommerceError } from '../domain/errors.ts'
 import type { IdentityRepository } from '../auth/repository.ts'
 import type { OidcService } from '../auth/oidc.ts'
-import { assertCsrf, authenticateSession, expiredSessionCookie, secretHash } from '../auth/session.ts'
+import { assertCsrf, authenticateSession, expiredSessionCookie, opaqueSecret, secretHash } from '../auth/session.ts'
 import { requirePermission } from '../auth/authorization.ts'
 import type { InvestigationRepository } from '../storage/investigation-repository.ts'
 import type { ApprovalService } from '../approvals/approval-service.ts'
@@ -13,6 +13,9 @@ import { ApprovalDecisionRequestSchema, CreateTaskRequestSchema } from './contra
 import { RequestIdempotency } from './idempotency.ts'
 import { ScopedResources } from './resources.ts'
 import type { InvestigationTask } from '../contracts/task.ts'
+import type { FeedbackService } from '../feedback/service.ts'
+import type { MonitorRepository } from '../monitoring/repository.ts'
+import { TaskListQuerySchema } from './contracts.ts'
 
 type CommerceApiOptions = {
   identity: IdentityRepository
@@ -27,6 +30,8 @@ type CommerceApiOptions = {
   budget: BudgetConfig
   now?: () => Date
   taskSink?: (task: InvestigationTask, now: string) => void
+  feedback?: FeedbackService
+  monitoring?: MonitorRepository
 }
 
 function routeId(pathname: string, prefix: string, suffix = ''): string | undefined {
@@ -60,6 +65,11 @@ export class CommerceApi {
         const result = await this.#options.oidc.callback({
           code: url.searchParams.get('code') ?? '', state: url.searchParams.get('state') ?? '',
         })
+        if (request.headers.get('accept')?.includes('text/html')) {
+          return this.#cors(new Response(null, { status: 302, headers: {
+            location: '/commerce', 'set-cookie': result.setCookie, 'cache-control': 'no-store',
+          } }), request)
+        }
         return this.#cors(this.#json({ ok: true, data: { principal: result.principal, csrfToken: result.csrfToken }, traceId }, 200, {
           'set-cookie': result.setCookie,
           'cache-control': 'no-store',
@@ -72,6 +82,12 @@ export class CommerceApi {
 
       if (request.method === 'GET' && url.pathname === '/api/v1/me') {
         return this.#ok(principal, traceId, request)
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/csrf-token') {
+        if (!principal.sessionId) throw new CommerceError('SCOPE_DENIED', 'Browser session is required')
+        const csrfToken = opaqueSecret()
+        this.#options.identity.rotateSessionCsrf(principal.sessionId, secretHash(csrfToken))
+        return this.#cors(this.#json({ ok: true, data: { csrfToken }, traceId }, 200, { 'cache-control': 'no-store' }), request)
       }
       if (request.method === 'POST' && url.pathname === '/api/v1/auth/logout') {
         assertCsrf(request, authenticated.csrfHash, this.#options.allowedOrigins)
@@ -104,6 +120,23 @@ export class CommerceApi {
         })
         return this.#cors(this.#json({ ok: true, data: outcome.value, replayed: outcome.replayed, traceId }, outcome.replayed ? 200 : 201), request)
       }
+      if (request.method === 'GET' && url.pathname === '/api/v1/tasks') {
+        const query = TaskListQuerySchema.parse(Object.fromEntries([...url.searchParams].filter(([key]) => ['limit', 'before'].includes(key))))
+        return this.#ok(await this.#options.resources.tasks(principal, query), traceId, request)
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/cases') {
+        requirePermission(principal, 'task:read')
+        return this.#ok({ items: this.#options.monitoring?.list({ tenantId: principal.tenantId, shopIds: principal.allowedShopIds }) ?? [] }, traceId, request)
+      }
+      if (request.method === 'POST' && url.pathname === '/api/v1/feedback') {
+        if (!this.#options.feedback) throw new CommerceError('INTERNAL', 'Feedback service is unavailable')
+        assertCsrf(request, authenticated.csrfHash, this.#options.allowedOrigins)
+        return this.#ok(this.#options.feedback.submit(principal, await request.json()), traceId, request)
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/evaluation-candidates') {
+        if (!this.#options.feedback) throw new CommerceError('INTERNAL', 'Feedback service is unavailable')
+        return this.#ok({ items: this.#options.feedback.listCandidates(principal) }, traceId, request)
+      }
 
       const taskEventsId = routeId(url.pathname, '/api/v1/tasks/', '/events')
       if (request.method === 'GET' && taskEventsId) {
@@ -111,6 +144,8 @@ export class CommerceApi {
         const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') ?? 50) || 50))
         return this.#ok(await this.#options.resources.events(principal, taskEventsId, cursor, limit), traceId, request)
       }
+      const taskSnapshotId = routeId(url.pathname, '/api/v1/tasks/', '/snapshot')
+      if (request.method === 'GET' && taskSnapshotId) return this.#ok(await this.#options.resources.taskSnapshot(principal, taskSnapshotId), traceId, request)
       const taskId = routeId(url.pathname, '/api/v1/tasks/')
       if (request.method === 'GET' && taskId) return this.#ok(await this.#options.resources.task(principal, taskId), traceId, request)
 

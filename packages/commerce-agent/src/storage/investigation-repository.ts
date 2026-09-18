@@ -213,10 +213,10 @@ export class InvestigationRepository {
     ) VALUES (?1, ?2, ?3, ?4, ?5)`).run(input.runId, number, JSON.stringify(input.state), JSON.stringify(input.budget), input.now)
   }
 
-  listEvents(runId: string): Array<{ sequence: number; type: string; payload: unknown }> {
-    return this.#db.query<{ sequence: number; event_type: string; payload_json: string }, [string]>(
-      'SELECT sequence, event_type, payload_json FROM investigation_events WHERE run_id = ?1 ORDER BY sequence',
-    ).all(runId).map(row => ({ sequence: row.sequence, type: row.event_type, payload: JSON.parse(row.payload_json) }))
+  listEvents(runId: string): Array<{ eventId: string; sequence: number; type: string; payload: unknown; createdAt: string }> {
+    return this.#db.query<{ event_id: string; sequence: number; event_type: string; payload_json: string; created_at: string }, [string]>(
+      'SELECT event_id, sequence, event_type, payload_json, created_at FROM investigation_events WHERE run_id = ?1 ORDER BY sequence',
+    ).all(runId).map(row => ({ eventId: row.event_id, sequence: row.sequence, type: row.event_type, payload: JSON.parse(row.payload_json), createdAt: row.created_at }))
   }
 
   #insertEvent(event: RunEvent): void {

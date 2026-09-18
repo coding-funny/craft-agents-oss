@@ -6,7 +6,7 @@
 
 01 链路已完成 B00—B07 编码和离线验收；02、03 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移、外部企业 IdP 或部署验收。
 
-当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-05`，父实现 commit=`cf73e791`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
+当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-06`，父实现 commit=`e4df2233`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
 
 | 链路 | 状态 | 当前批次 | 代码/验收证据 | 下一步 |
 | --- | --- | --- | --- | --- |
@@ -15,7 +15,7 @@
 | 03 身份授权与审批治理 | CODE_READY / 外部验收阻塞 | B00—B06 本地完成 | 141 项全回归；真实本地 OIDC HTTP；RBAC/API/审批/撤销/RLS 合同 | 提供 PostgreSQL 应用角色与外部 IdP 后补 B07 |
 | 04 持久任务与可靠执行 | CODE_READY / 外部验收待执行 | B00—B07 本地完成 | 156 项全回归；多进程租约、独立 HTTP 平台、UNKNOWN 对账 | 真 PostgreSQL 和授权平台验收 |
 | 05 真实评测与回归门禁 | EVAL_INFRA_READY / 外部证据待补 | B00—B07 基础设施完成 | RunEvidence、重复聚合、人工复核队列、fail-closed gate/compare/CI | 扩展 40 dev + 20 holdout，执行 live repeats 与人工复核 |
-| 06 运营交互与业务反馈 | PLANNED | 无 | 无 | 等待 API 与任务契约 |
+| 06 运营交互与业务反馈 | CODE_READY / 浏览器与用户验收待补 | B00—B07 本地实现 | `/commerce` 六视图、snapshot 恢复、监控去重、反馈候选、受限案例记忆 | Campaign scope、浏览器 E2E、真实模型 UI 与用户试用 |
 | 07 部署运维与试运行验收 | PLANNED | 无 | 无 | 环境基础随 02 建立 |
 
 状态定义见 [入口](./README.md)。依赖的代码契约稳定而外部验证未完成时，记录具体依赖，不把整个项目简单标记为已完成或全部阻塞。
@@ -130,6 +130,17 @@
 - Verify：Bun 1.4.2；`commerce:test:eval-agent` 12 pass / 0 fail / 43 assertions；`commerce:test` 165 pass / 0 fail / 549 assertions；`commerce:typecheck` exit 0；validator 稳定输出 dev digest 与三项 release blocker。
 - Handoff：`packages/commerce-agent/docs/implementation/05/{evaluation-adr,metrics,release-gate,acceptance}.md`。06 可消费 review/failure reason；07 需在真实部署环境运行锁定 gate。
 - Git：以 `feat(commerce): add evaluation and release gates` 独立提交 05 文件；用户暂存的 `packages/core/src/types/index.ts` 保持不动且不纳入。
+
+## 06 实施记录（当前工作区）
+
+- 状态：CODE_READY；BROWSER_E2E、真实模型 UI、Campaign monitor→task 和用户试用为 PENDING。
+- Plan：保留通用聊天入口，在 `/commerce` 增加案例、调查、报告/证据、审批、执行、反馈六视图；扩展受权 read model、规则监控、反馈候选和 reviewed case memory。
+- Execute：实现 task list/snapshot/稳定事件字段、会话 CSRF 轮换、广告/库存规则与最小样本、snapshot 幂等和冷却合并、DEFERRED/配额、版本绑定反馈、脱敏评测候选、tenant/shop/有效期约束的案例记忆；CI 增加 operations 与 WebUI build。
+- Security：React 只做文本渲染；报告路径不出 API；反馈 claim/evidence 必须属于报告版本；跨 tenant/shop 在服务端过滤；反馈不直接写 Prompt 或 holdout。
+- Boundary：现有 Investigation scope 只有 skuIds，Campaign 监控不能无损自动建任务，本批次保留 attachTask 契约但不伪造映射；事件首版为 snapshot polling，不声称 SSE。
+- Verify：`commerce:test:operations` 15 pass / 0 fail / 54 assertions；`commerce:test` 175 pass / 0 fail / 592 assertions；Commerce/WebUI typecheck 通过；WebUI production build 通过。
+- Handoff：`packages/commerce-agent/docs/implementation/06/{architecture,operations,acceptance}.md`；开发环境 `/commerce-api` 已代理到 3210，07 需配置生产同源代理、OIDC callback、Worker/monitor 调度和浏览器 smoke。
+- Git：计划提交信息 `feat(commerce): add operations workbench and feedback loop`；用户原有 core 暂存改动继续排除。
 
 ## 执行批次模板
 

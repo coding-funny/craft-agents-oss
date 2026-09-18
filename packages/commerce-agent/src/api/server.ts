@@ -15,6 +15,8 @@ import { CommerceApi } from './router.ts'
 import { DurableJobRepository } from '../jobs/repository.ts'
 import { OutboxRepository } from '../jobs/outbox.ts'
 import { createApprovalDecisionSink, createTaskJobSink } from '../jobs/integration.ts'
+import { FeedbackService } from '../feedback/service.ts'
+import { MonitorRepository } from '../monitoring/repository.ts'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -60,6 +62,7 @@ export function createApiFromEnvironment(): { api: CommerceApi; store: CommerceD
     allowedOrigins: required('COMMERCE_ALLOWED_ORIGINS').split(',').map(value => value.trim()).filter(Boolean),
     asOf: required('COMMERCE_AS_OF'), fixtureDigest: required('COMMERCE_DATA_DIGEST'), budget: DEFAULT_BUDGET,
     taskSink: createTaskJobSink(jobs, outbox),
+    feedback: new FeedbackService(store), monitoring: new MonitorRepository(store),
   })
   return { api, store }
 }

@@ -7,5 +7,10 @@ export const ApprovalDecisionRequestSchema = z.object({
   confirmHash: z.string().regex(/^[a-f0-9]{64}$/),
 }).strict()
 
+export const TaskListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(30),
+  before: z.string().datetime({ offset: true }).optional(),
+}).strict()
+
 export type ApiSuccess<T> = { ok: true; data: T; traceId: string }
 export type ApiFailure = { ok: false; error: { code: string; message: string }; traceId: string }
