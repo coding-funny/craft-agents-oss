@@ -190,6 +190,103 @@ export class CommerceDatabase {
         PRIMARY KEY(run_id, checkpoint_no),
         FOREIGN KEY(run_id) REFERENCES investigation_runs(run_id)
       );
+      CREATE TABLE IF NOT EXISTS commerce_schema_migrations (
+        version TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        applied_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS commerce_imports (
+        import_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        manifest_hash TEXT NOT NULL,
+        manifest_json TEXT NOT NULL,
+        result_json TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(import_id, tenant_id, shop_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_imports_scope
+        ON commerce_imports(tenant_id, shop_id, created_at);
+      CREATE TABLE IF NOT EXISTS commerce_record_versions (
+        record_version_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        source_record_id TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        content_hash TEXT NOT NULL,
+        business_time TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        import_id TEXT NOT NULL,
+        ingested_at TEXT NOT NULL,
+        UNIQUE(tenant_id, shop_id, kind, source_id, source_record_id, version),
+        UNIQUE(tenant_id, shop_id, kind, source_id, source_record_id, content_hash),
+        UNIQUE(record_version_id, tenant_id, shop_id),
+        FOREIGN KEY(import_id, tenant_id, shop_id)
+          REFERENCES commerce_imports(import_id, tenant_id, shop_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_records_scope_kind_time
+        ON commerce_record_versions(tenant_id, shop_id, kind, source_id, business_time);
+      CREATE TABLE IF NOT EXISTS commerce_quarantine (
+        quarantine_id TEXT PRIMARY KEY,
+        import_id TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        row_number INTEGER NOT NULL,
+        code TEXT NOT NULL,
+        message TEXT NOT NULL,
+        raw_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(import_id, kind, row_number),
+        FOREIGN KEY(import_id, tenant_id, shop_id)
+          REFERENCES commerce_imports(import_id, tenant_id, shop_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_snapshots (
+        snapshot_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        import_id TEXT NOT NULL,
+        as_of TEXT NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(snapshot_id, tenant_id, shop_id),
+        UNIQUE(import_id),
+        FOREIGN KEY(import_id, tenant_id, shop_id)
+          REFERENCES commerce_imports(import_id, tenant_id, shop_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_snapshots_scope_asof
+        ON commerce_snapshots(tenant_id, shop_id, as_of DESC);
+      CREATE TABLE IF NOT EXISTS commerce_snapshot_records (
+        snapshot_id TEXT NOT NULL,
+        record_version_id TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        PRIMARY KEY(snapshot_id, record_version_id),
+        FOREIGN KEY(snapshot_id, tenant_id, shop_id)
+          REFERENCES commerce_snapshots(snapshot_id, tenant_id, shop_id),
+        FOREIGN KEY(record_version_id, tenant_id, shop_id)
+          REFERENCES commerce_record_versions(record_version_id, tenant_id, shop_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_report_reviews (
+        review_id TEXT PRIMARY KEY,
+        report_id TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        snapshot_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        reviews_json TEXT NOT NULL,
+        reviewer_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(snapshot_id, tenant_id, shop_id)
+          REFERENCES commerce_snapshots(snapshot_id, tenant_id, shop_id)
+      );
     `)
   }
 

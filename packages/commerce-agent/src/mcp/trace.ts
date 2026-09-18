@@ -64,6 +64,7 @@ export function summarizeArguments(value: unknown, depth = 0): unknown {
 
 export function redactErrorMessage(message: string): string {
   return message
+    .replace(/(postgres(?:ql)?:\/\/)[^@\s]+@/gi, '$1[REDACTED]@')
     .replace(/(bearer\s+)[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/((?:api[_-]?key|token|secret|password)\s*[=:]\s*)[^\s,;]+/gi, '$1[REDACTED]')
 }

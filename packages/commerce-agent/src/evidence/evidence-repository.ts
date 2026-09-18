@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { EvidenceRecord, EvidenceRef } from '../domain/contracts.ts'
+import type { EvidenceGovernance, EvidenceRecord, EvidenceRef } from '../domain/contracts.ts'
 import { CommerceError } from '../domain/errors.ts'
 
 const VOLATILE_QUERY_KEYS = new Set(['traceId', 'runId', 'caseId'])
@@ -33,6 +33,7 @@ export type CaptureEvidenceInput = {
   recordRefs: string[]
   content: unknown
   summary: string
+  governance?: EvidenceGovernance
 }
 
 export type EvidenceStore = {
@@ -55,6 +56,7 @@ export class EvidenceRepository {
       query: stableQuery(input.query),
       recordRefs: [...input.recordRefs].sort(),
       content: input.content,
+      governance: input.governance,
     }
     const evidenceId = `ev_${digest(stablePayload).slice(0, 24)}`
 
@@ -69,6 +71,7 @@ export class EvidenceRepository {
         content: canonicalize(input.content),
         summary: input.summary,
         createdAt: input.asOf,
+        governance: input.governance ? canonicalize(input.governance) as EvidenceGovernance : undefined,
       }
       this.#records.set(evidenceId, record)
       this.#store?.saveEvidence(record)
@@ -92,6 +95,19 @@ export class EvidenceRepository {
 
   getOrThrow(evidenceId: string): EvidenceRecord {
     const record = this.get(evidenceId)
+    if (!record) throw new CommerceError('NOT_FOUND', `Evidence not found: ${evidenceId}`)
+    return record
+  }
+
+  getScoped(evidenceId: string, scope: { tenantId: string; shopId: string }): EvidenceRecord | undefined {
+    const record = this.get(evidenceId)
+    if (!record?.governance) return undefined
+    if (record.governance.tenantId !== scope.tenantId || record.governance.shopId !== scope.shopId) return undefined
+    return record
+  }
+
+  getOrThrowScoped(evidenceId: string, scope: { tenantId: string; shopId: string }): EvidenceRecord {
+    const record = this.getScoped(evidenceId, scope)
     if (!record) throw new CommerceError('NOT_FOUND', `Evidence not found: ${evidenceId}`)
     return record
   }

@@ -4,14 +4,14 @@
 
 更新时间：2026-09-18。
 
-01 链路已完成 B00—B07 编码和离线验收；未运行真实模型，未接入真实商家数据，未执行生产数据库迁移或部署。
+01 链路已完成 B00—B07 编码和离线验收；02 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移或部署。
 
-当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-01`，起始 HEAD=`e8963854`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
+当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-02`，父实现 commit=`cda50438`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
 
 | 链路 | 状态 | 当前批次 | 代码/验收证据 | 下一步 |
 | --- | --- | --- | --- | --- |
 | 01 真实模型与动态调查 | CODE_READY / B08 BLOCKED_EXTERNAL | B00—B07 完成 | 32 项 agent 测试；真实 stdio MCP 纵向链路；20 条 dev | 提供明确 live 模型配置与预算后执行 5 条 smoke |
-| 02 数据接入与证据治理 | PLANNED | 无 | 无 | 等待 01 契约，先读共享设计 |
+| 02 数据接入与证据治理 | CODE_READY / 外部验收阻塞 | B00—B07 本地完成 | 124 项全回归；多格式导入、不可变 snapshot、真实 stdio imported MCP | 提供 PostgreSQL URL 与授权数据后补 B07/B08 |
 | 03 身份授权与审批治理 | PLANNED | 无 | 无 | 等待 02 存储契约 |
 | 04 持久任务与可靠执行 | PLANNED | 无 | 无 | 等待身份与审批契约 |
 | 05 真实评测与回归门禁 | PLANNED | 无 | 无 | 种子工作随 01 开始 |
@@ -35,6 +35,9 @@
 | 2026-09-18 | 01 使用受限单次模型驱动与宿主 Loop | 全量 coding Agent 不适合作为 commerce 工具安全边界 | live/fake 明确分离；无自动降级 |
 | 2026-09-18 | MCP stdio 增加 `inheritEnv:false` | 黑名单无法证明 provider 凭据不进入子进程 | commerce 子进程使用显式环境白名单 |
 | 2026-09-18 | 澄清继续使用 task version + parent Run | 防止旧答案覆盖新范围并保留跨进程审计 | stale version 拒绝；预算从父 manifest 继承 |
+| 2026-09-18 | 02 保持 01 CommerceAdapter，新增 snapshot-bound 实现 | 避免重写调查 Loop，并固定单次 Run 的数据版本 | fixture/imported 通过同一 MCP 工具契约 |
+| 2026-09-18 | 数据记录按 tenant/shop/kind/source/sourceRecordId 版本化 | 同 ID 修订不能重复记账，不同来源不能误去重 | snapshot 保留不可变 membership 和逐记录来源 |
+| 2026-09-18 | PostgreSQL 验证与 SQLite 合同分层 | 当前无真库/容器，不能让本地测试冒充生产数据库 | URL 缺失时 postgres 测试明确 exit 1 |
 
 ## 待落实的外部条件
 
@@ -80,6 +83,18 @@
 - 外部阻塞：未提供显式 provider/model/api-key env 和总预算，T40—T41 未运行；不读取或搜索机器上的无关密钥。
 - 交接：`packages/commerce-agent/docs/implementation/01/{baseline-audit,backend-decision,acceptance,handoff}.md`。
 - Git：本批次以 `feat(commerce): add production investigation runtime` 提交；用户已有 `packages/core/src/types/index.ts` 暂存修改不纳入。
+
+## 02 实施记录（当前工作区）
+
+- 状态：CODE_READY；PostgreSQL 真库和授权数据 B07/B08 为 BLOCKED_EXTERNAL。
+- Plan：02 第 8—14 节补充实际 01 契约、输入输出、状态机、表结构、文件清单、B00—B08、T01—T25 和三级完成条件后再编码。
+- Execute：实现严格 ImportManifest、JSON/JSONL/CSV 解析、路径/摘要/授权声明校验、quarantine、来源内幂等和修订、SQLite/PostgreSQL 异步 Repository、不可变 snapshot、ImportedDataAdapter、evidence v2、freshness/claim review、HTTP 分页故障语义、import/migrate CLI 及 imported stdio MCP 模式。
+- Verify：Bun 1.4.2；`commerce:typecheck` exit 0；最终 `commerce:test` 124 passed / 0 failed / 402 assertions。dry-run accepted=8 且零写入；apply accepted=8 并生成 snapshot。HTTP localhost 测试在获得监听权限后通过，未改成 skip。
+- PostgreSQL：migration runner、SQL 和 repository 已实现；当前无 docker/podman/psql 或 `COMMERCE_TEST_DATABASE_URL`。专用命令 exit 1 并明确未执行，不能标 POSTGRES_VERIFIED。
+- Data：提交样例标记为 SYNTHETIC_FIXTURE；没有授权经营数据，不标 REAL_DATA_VERIFIED。没有运行 live model。
+- Review：修正了初版去重键遗漏 sourceId 的问题；最终记录身份为 tenant/shop/kind/source/sourceRecordId。报告硬门禁拒绝混用 legacy/governed 或跨 snapshot/口径证据；semantic reviewer 不可用时只返回 PENDING_REVIEW。
+- Handoff：`packages/commerce-agent/docs/implementation/02/{baseline-audit,storage-decision,data-dictionary,acceptance,handoff}.md`。03 基于现有 scope 做身份/RBAC/RLS 和审批仓库迁移。
+- Git：以 `feat(commerce): add governed data ingestion` 独立提交 02 文件；提交后工作树仅保留用户原先暂存的 `packages/core/src/types/index.ts`。
 
 ## 执行批次模板
 

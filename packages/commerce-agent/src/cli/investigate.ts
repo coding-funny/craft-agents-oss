@@ -12,6 +12,8 @@ import { createScopedCommerceClient } from '../mcp/scoped-client.ts'
 import { ReportRepository } from '../reports/report-repository.ts'
 import { CommerceDatabase } from '../storage/database.ts'
 import { InvestigationRepository } from '../storage/investigation-repository.ts'
+import { SqliteDataGovernanceRepository } from '../storage/sqlite-data-governance-repository.ts'
+import { contentHash } from '../data/hash.ts'
 import { createConfiguredModel } from './investigation-runtime.ts'
 
 function valueFor(name: string): string | undefined {
@@ -46,7 +48,17 @@ export async function investigateCli(): Promise<number> {
     let task: InvestigationTask
     let parentRunId: string | undefined
     let initialBudget: ConstructorParameters<typeof BudgetLedger>[1]
-    const digest = await fixtureDigest(config.fixtureDir)
+    let digest: string
+    if (config.dataMode === 'fixture') digest = await fixtureDigest(config.fixtureDir)
+    else {
+      const snapshot = await new SqliteDataGovernanceRepository(store).getSnapshot({
+        tenantId: config.principal.tenantId,
+        shopId: config.snapshotShopId,
+        snapshotId: config.snapshotId,
+      })
+      if (!snapshot) throw new CommerceError('NOT_FOUND', 'Configured imported snapshot was not found in the runtime database')
+      digest = contentHash(snapshot)
+    }
     if (inputPath) {
       const input = JSON.parse(await readFile(resolve(inputPath), 'utf8'))
       task = createInvestigationTask(input, {
@@ -97,11 +109,13 @@ export async function investigateCli(): Promise<number> {
     const ledger = new BudgetLedger(config.budget, initialBudget)
     const dispatcher = new ScopedToolDispatcher({
       client: createScopedCommerceClient({
-        fixtureDir: config.fixtureDir,
         shopId: task.resolvedScope?.shopId ?? config.principal.allowedShopIds[0]!,
         reportDir: config.reportDir,
         dbPath: config.dbPath,
         traceFile: config.traceFile,
+        ...(config.dataMode === 'fixture'
+          ? { dataMode: 'fixture' as const, fixtureDir: config.fixtureDir }
+          : { dataMode: 'imported' as const, tenantId: config.principal.tenantId, snapshotId: config.snapshotId }),
       }),
       budget: ledger,
     })

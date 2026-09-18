@@ -3,12 +3,14 @@ import { fileURLToPath } from 'node:url'
 import type { McpToolClient } from '../agent/tool-dispatcher.ts'
 
 export type ScopedCommerceClientOptions = {
-  fixtureDir: string
   shopId: string
   reportDir: string
   dbPath: string
   traceFile?: string
-}
+} & (
+  | { dataMode?: 'fixture'; fixtureDir: string }
+  | { dataMode: 'imported'; tenantId: string; snapshotId: string }
+)
 
 /**
  * Starts the commerce MCP server with an explicit environment allowlist.
@@ -23,7 +25,10 @@ export function createScopedCommerceClient(options: ScopedCommerceClientOptions)
     inheritEnv: false,
     env: {
       COMMERCE_MODE: 'readonly',
-      COMMERCE_FIXTURE_DIR: options.fixtureDir,
+      COMMERCE_DATA_MODE: options.dataMode ?? 'fixture',
+      ...(options.dataMode !== 'imported'
+        ? { COMMERCE_FIXTURE_DIR: options.fixtureDir }
+        : { COMMERCE_TENANT_ID: options.tenantId, COMMERCE_SNAPSHOT_ID: options.snapshotId }),
       COMMERCE_SHOP_ID: options.shopId,
       COMMERCE_REPORT_DIR: options.reportDir,
       COMMERCE_DB_PATH: options.dbPath,

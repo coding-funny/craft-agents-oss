@@ -184,6 +184,25 @@ export type EvidenceRecord = {
   content: unknown
   summary: string
   createdAt: string
+  governance?: EvidenceGovernance
+}
+
+export type EvidenceGovernance = {
+  schemaVersion: 2
+  tenantId: string
+  shopId: string
+  snapshotId: string
+  sourceType: 'AUTHORIZED_EXPORT' | 'SYNTHETIC_FIXTURE' | 'HTTP_TEST_SOURCE'
+  sources?: Array<{
+    sourceType: 'AUTHORIZED_EXPORT' | 'SYNTHETIC_FIXTURE' | 'HTTP_TEST_SOURCE'
+    sourceId: string
+    importId: string
+  }>
+  sourceRecordIds: string[]
+  metricDefinitionVersion: string
+  contentHash: string
+  businessTimeRange: { start: string; end: string }
+  ingestedAt: string
 }
 
 export const SalesRecordArraySchema = z.array(SalesRecordSchema)

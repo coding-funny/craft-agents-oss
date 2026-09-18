@@ -1,0 +1,2 @@
+shopId,productId,skuId,spec,currency,unitCostMinor,fulfillmentCostMinor,platformFeeRateBps
+demo-shop,SYN-PRODUCT-001,SYN-SKU-001,synthetic-standard,CNY,5000,500,1000

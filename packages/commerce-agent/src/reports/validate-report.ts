@@ -9,6 +9,7 @@ import {
   type TimeRange,
 } from '../domain/contracts.ts'
 import type { EvidenceRepository } from '../evidence/evidence-repository.ts'
+import { evidenceSetHealth } from '../evidence/freshness-policy.ts'
 import { calculateAdMetrics } from '../metrics/ads.ts'
 import { calculateInventoryMetrics } from '../metrics/inventory.ts'
 import { calculateMarginMetrics } from '../metrics/margin.ts'
@@ -31,6 +32,10 @@ function sameWindow(left: unknown, right: ReportScope['currentWindow']): boolean
   if (!left || typeof left !== 'object') return false
   const window = left as Record<string, unknown>
   return window.start === right.start && window.end === right.end && window.timezone === right.timezone
+}
+
+function sameBusinessWindow(left: { start: string; end: string }, right: ReportScope['currentWindow']): boolean {
+  return left.start === right.start && left.end === right.end
 }
 
 function collectReferencedEvidence(report: DiagnosisReportDraft): Set<string> {
@@ -62,6 +67,24 @@ function assertMetricConsistency(report: DiagnosisReportDraft): void {
     if (kpi.baseline.unit !== kpi.current.unit) fail(`KPI unit conflict: ${kpi.name}`)
     if (kpi.baseline.unit.includes('_minor') && !kpi.baseline.unit.startsWith(`${report.scope.currency}_minor`)) {
       fail(`KPI currency conflicts with report scope: ${kpi.name}`)
+    }
+  }
+}
+
+function assertGovernedReportEvidence(records: EvidenceRecord[], report: DiagnosisReportDraft): void {
+  if (!records.some(record => record.governance)) return
+  if (records.some(record => !record.governance)) fail('Report cannot mix governed and legacy evidence')
+  const health = evidenceSetHealth(records)
+  if (health.health === 'CONFLICT') fail('Report evidence has a scope or snapshot conflict', { reasons: health.reasons })
+  const metricVersions = new Set(records.map(record => record.governance!.metricDefinitionVersion))
+  if (metricVersions.size !== 1) fail('Report evidence mixes metric definition versions')
+  for (const record of records) {
+    if (record.governance!.shopId !== report.scope.shopId) {
+      fail(`Governed evidence shop conflicts with report scope: ${record.evidenceId}`)
+    }
+    if (!sameBusinessWindow(record.governance!.businessTimeRange, report.scope.baselineWindow)
+      && !sameBusinessWindow(record.governance!.businessTimeRange, report.scope.currentWindow)) {
+      fail(`Governed evidence business window conflicts with report scope: ${record.evidenceId}`)
     }
   }
 }
@@ -176,6 +199,7 @@ export async function validateAndPersistReport(
 ): Promise<PersistedReport> {
   const report = DiagnosisReportDraftSchema.parse(input)
   const referenced = collectReferencedEvidence(report)
+  const referencedRecords: EvidenceRecord[] = []
   const listed = new Map(report.evidence.map(item => [item.evidenceId, item]))
   if (listed.size !== report.evidence.length) fail('Evidence list contains duplicate IDs')
   if (referenced.size === 0) fail('Report does not reference evidence')
@@ -185,6 +209,7 @@ export async function validateAndPersistReport(
     const record = evidenceRepository.get(evidenceId)
     if (!record) fail(`Evidence cannot be resolved: ${evidenceId}`)
     assertEvidenceScope(record, report)
+    referencedRecords.push(record)
     if (record.source !== listedEvidence.source || record.asOf !== listedEvidence.asOf) {
       fail(`Evidence metadata does not match repository: ${evidenceId}`)
     }
@@ -193,6 +218,7 @@ export async function validateAndPersistReport(
     if (!referenced.has(evidenceId)) fail(`Evidence is listed but not referenced: ${evidenceId}`)
   }
   assertMetricConsistency(report)
+  assertGovernedReportEvidence(referencedRecords, report)
   assertKpiValues(report, evidenceRepository)
   assertLanguageSafety(report)
   const reportId = createReportId(report)

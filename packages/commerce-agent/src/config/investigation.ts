@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { z } from 'zod'
-import { BudgetConfigSchema, type BudgetConfig } from '../contracts/runtime.ts'
-import { PrincipalContextSchema, type PrincipalContext } from '../contracts/task.ts'
+import { BudgetConfigSchema } from '../contracts/runtime.ts'
+import { PrincipalContextSchema } from '../contracts/task.ts'
 import { CommerceError } from '../domain/errors.ts'
 
 const FakeModelConfigSchema = z.object({
@@ -19,23 +19,32 @@ const LiveModelConfigSchema = z.object({
   timeoutMs: z.number().int().min(100).max(300_000).default(60_000),
 }).strict()
 
-export const InvestigationConfigSchema = z.object({
+const InvestigationConfigBase = {
   schemaVersion: z.literal(1),
-  dataMode: z.literal('fixture'),
   model: z.discriminatedUnion('mode', [FakeModelConfigSchema, LiveModelConfigSchema]),
   principal: PrincipalContextSchema,
-  fixtureDir: z.string().min(1),
   dbPath: z.string().min(1),
   reportDir: z.string().min(1),
   traceFile: z.string().min(1).optional(),
   asOf: z.iso.datetime({ offset: true }),
   budget: BudgetConfigSchema,
-}).strict()
+} as const
 
-export type InvestigationConfig = Omit<z.infer<typeof InvestigationConfigSchema>, 'budget' | 'principal'> & {
-  budget: BudgetConfig
-  principal: PrincipalContext
-}
+export const InvestigationConfigSchema = z.discriminatedUnion('dataMode', [
+  z.object({
+    ...InvestigationConfigBase,
+    dataMode: z.literal('fixture'),
+    fixtureDir: z.string().min(1),
+  }).strict(),
+  z.object({
+    ...InvestigationConfigBase,
+    dataMode: z.literal('imported'),
+    snapshotId: z.string().regex(/^snapshot_[a-f0-9]{24}$/),
+    snapshotShopId: z.string().min(1),
+  }).strict(),
+])
+
+export type InvestigationConfig = z.infer<typeof InvestigationConfigSchema>
 
 function absolute(base: string, value: string): string {
   return resolve(base, value)
@@ -51,9 +60,12 @@ export async function loadInvestigationConfig(path: string): Promise<Investigati
   }
   const parsed = InvestigationConfigSchema.parse(raw)
   const base = dirname(configPath)
+  if (parsed.dataMode === 'imported' && !parsed.principal.allowedShopIds.includes(parsed.snapshotShopId)) {
+    throw new CommerceError('SCOPE_DENIED', 'Imported snapshot shop is outside the trusted principal scope')
+  }
   return {
     ...parsed,
-    fixtureDir: absolute(base, parsed.fixtureDir),
+    ...(parsed.dataMode === 'fixture' ? { fixtureDir: absolute(base, parsed.fixtureDir) } : {}),
     dbPath: absolute(base, parsed.dbPath),
     reportDir: absolute(base, parsed.reportDir),
     traceFile: parsed.traceFile ? absolute(base, parsed.traceFile) : undefined,

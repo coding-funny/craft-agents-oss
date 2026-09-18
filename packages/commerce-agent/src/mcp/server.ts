@@ -10,11 +10,14 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js'
 import { FixtureAdapter } from '../adapters/fixture-adapter.ts'
+import { ImportedDataAdapter } from '../adapters/imported-data-adapter.ts'
+import type { CommerceAdapter } from '../adapters/commerce-adapter.ts'
 import type { ToolEnvelope } from '../domain/contracts.ts'
 import { CommerceError } from '../domain/errors.ts'
 import { EvidenceRepository } from '../evidence/evidence-repository.ts'
 import { ReportRepository } from '../reports/report-repository.ts'
 import { CommerceDatabase } from '../storage/database.ts'
+import { SqliteDataGovernanceRepository } from '../storage/sqlite-data-governance-repository.ts'
 import { ProposalRepository } from '../approvals/repository.ts'
 import { ProposalService } from '../approvals/proposal-service.ts'
 import { computeMarginTool } from '../tools/compute-margin.ts'
@@ -75,6 +78,9 @@ export type CommerceServerOptions = {
   traceRecorder?: TraceRecorder
   runner?: ToolRunner
   now?: () => Date
+  dataSource?:
+    | { type: 'fixture' }
+    | { type: 'imported'; tenantId: string; snapshotId: string }
 }
 
 export type CommerceServerRuntime = {
@@ -114,11 +120,21 @@ export function createCommerceServer(options: CommerceServerOptions): CommerceSe
   const reports = new ReportRepository(options.reportDir, store)
   const proposalRepository = new ProposalRepository(store)
   const proposals = new ProposalService({ reports, repository: proposalRepository, now: options.now })
-  const adapter = new FixtureAdapter({
-    fixtureDir: options.fixtureDir,
-    allowedShopId: options.allowedShopId,
-    evidence,
-  })
+  const adapter: CommerceAdapter = options.dataSource?.type === 'imported'
+    ? new ImportedDataAdapter({
+        repository: new SqliteDataGovernanceRepository(store),
+        evidence,
+        binding: {
+          tenantId: options.dataSource.tenantId,
+          shopId: options.allowedShopId,
+          snapshotId: options.dataSource.snapshotId,
+        },
+      })
+    : new FixtureAdapter({
+        fixtureDir: options.fixtureDir,
+        allowedShopId: options.allowedShopId,
+        evidence,
+      })
   const runner = options.runner ?? new ToolRunner({ traceRecorder: options.traceRecorder })
   const dependencies: CommerceToolDependencies = {
     adapter,
@@ -176,8 +192,10 @@ export async function startStdioServer(): Promise<void> {
   const mode = process.env.COMMERCE_MODE ?? 'readonly'
   if (mode !== 'governed-mock' && mode !== 'readonly') throw new Error(`Unsupported COMMERCE_MODE: ${mode}`)
 
+  const dataMode = process.env.COMMERCE_DATA_MODE ?? 'fixture'
+  if (dataMode !== 'fixture' && dataMode !== 'imported') throw new Error(`Unsupported COMMERCE_DATA_MODE: ${dataMode}`)
   const fixtureDir = process.env.COMMERCE_FIXTURE_DIR ?? resolve(import.meta.dir, '../../fixtures')
-  if (!existsSync(fixtureDir)) throw new Error(`Commerce fixture directory does not exist: ${fixtureDir}`)
+  if (dataMode === 'fixture' && !existsSync(fixtureDir)) throw new Error(`Commerce fixture directory does not exist: ${fixtureDir}`)
   const allowedShopId = process.env.COMMERCE_SHOP_ID ?? 'demo-shop'
   const reportDir = process.env.COMMERCE_REPORT_DIR ?? resolve(import.meta.dir, '../../demo/artifacts')
   const dbPath = process.env.COMMERCE_DB_PATH ?? resolve(reportDir, 'commerce.sqlite')
@@ -187,9 +205,16 @@ export async function startStdioServer(): Promise<void> {
     reportDir,
     dbPath,
     traceRecorder: createTraceRecorderFromEnvironment(),
+    dataSource: dataMode === 'imported'
+      ? {
+          type: 'imported',
+          tenantId: process.env.COMMERCE_TENANT_ID ?? (() => { throw new Error('COMMERCE_TENANT_ID is required') })(),
+          snapshotId: process.env.COMMERCE_SNAPSHOT_ID ?? (() => { throw new Error('COMMERCE_SNAPSHOT_ID is required') })(),
+        }
+      : { type: 'fixture' },
   })
   await runtime.server.connect(new StdioServerTransport())
-  console.error(`Commerce MCP Server started in ${mode} mode for shop ${allowedShopId}`)
+  console.error(`Commerce MCP Server started in ${mode}/${dataMode} mode for shop ${allowedShopId}`)
 }
 
 if (import.meta.main) {

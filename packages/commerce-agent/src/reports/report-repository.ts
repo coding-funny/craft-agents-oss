@@ -46,12 +46,13 @@ export class ReportRepository {
 
   async save(draft: DiagnosisReportDraft, markdown: string): Promise<PersistedReport> {
     const report = DiagnosisReportSchema.parse({ ...draft, reportId: createReportId(draft) })
+    // The database is the primary record. Markdown/JSON files are reproducible projections.
+    this.#store?.saveReport(report, reportContentHash(report))
     await mkdir(this.#root, { recursive: true })
     const jsonPath = resolve(this.#root, `${report.reportId}.json`)
     const markdownPath = resolve(this.#root, `${report.reportId}.md`)
     await this.#atomicWrite(jsonPath, `${JSON.stringify(report, null, 2)}\n`)
     await this.#atomicWrite(markdownPath, markdown)
-    this.#store?.saveReport(report, reportContentHash(report))
     const reread = await this.get(report.reportId)
     if (JSON.stringify(reread) !== JSON.stringify(report)) {
       throw new CommerceError('INTERNAL', `Persisted report failed read-back verification: ${report.reportId}`)
