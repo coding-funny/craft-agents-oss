@@ -7,11 +7,16 @@ export class ApprovalService {
   readonly #repository: ProposalRepository
   readonly #now: () => Date
   readonly #policy: ApprovalPolicy
+  readonly #decisionSink?: (proposal: Proposal, decision: 'APPROVED' | 'REJECTED', now: string) => void
 
-  constructor(options: { repository: ProposalRepository; policy?: ApprovalPolicy; now?: () => Date }) {
+  constructor(options: {
+    repository: ProposalRepository; policy?: ApprovalPolicy; now?: () => Date
+    decisionSink?: (proposal: Proposal, decision: 'APPROVED' | 'REJECTED', now: string) => void
+  }) {
     this.#repository = options.repository
     this.#policy = options.policy ?? new ApprovalPolicy()
     this.#now = options.now ?? (() => new Date())
+    this.#decisionSink = options.decisionSink
   }
 
   approve(input: { proposalId: string; principal: AuthenticatedPrincipal; reason: string; confirmHash: string }): Proposal {
@@ -72,6 +77,7 @@ export class ApprovalService {
         details: { reason: input.reason, reasonCode, subject: input.principal.subject, sessionId: input.principal.sessionId },
         createdAt: now,
       })
+      this.#decisionSink?.(next, input.decision, now)
       return next
     })
   }

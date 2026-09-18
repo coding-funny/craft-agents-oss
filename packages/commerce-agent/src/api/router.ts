@@ -12,6 +12,7 @@ import type { ApprovalService } from '../approvals/approval-service.ts'
 import { ApprovalDecisionRequestSchema, CreateTaskRequestSchema } from './contracts.ts'
 import { RequestIdempotency } from './idempotency.ts'
 import { ScopedResources } from './resources.ts'
+import type { InvestigationTask } from '../contracts/task.ts'
 
 type CommerceApiOptions = {
   identity: IdentityRepository
@@ -25,6 +26,7 @@ type CommerceApiOptions = {
   fixtureDigest: string
   budget: BudgetConfig
   now?: () => Date
+  taskSink?: (task: InvestigationTask, now: string) => void
 }
 
 function routeId(pathname: string, prefix: string, suffix = ''): string | undefined {
@@ -93,7 +95,10 @@ export class CommerceApi {
               },
               asOf: this.#options.asOf, fixtureDigest: this.#options.fixtureDigest, now: this.#now,
             })
-            await this.#options.investigations.createTask(task, this.#options.budget)
+            await this.#options.investigations.createTask(
+              task, this.#options.budget,
+              this.#options.taskSink ? () => this.#options.taskSink!(task, this.#now().toISOString()) : undefined,
+            )
             return task
           },
         })

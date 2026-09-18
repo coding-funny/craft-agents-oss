@@ -10,6 +10,7 @@ export const PROPOSAL_STATUSES = [
   'SUCCEEDED',
   'FAILED',
   'UNKNOWN',
+  'MANUAL_REVIEW',
 ] as const
 
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
@@ -20,10 +21,11 @@ const TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
   APPROVED: ['EXECUTING', 'EXPIRED'],
   REJECTED: [],
   EXPIRED: [],
-  EXECUTING: ['SUCCEEDED', 'FAILED', 'UNKNOWN'],
+  EXECUTING: ['SUCCEEDED', 'FAILED', 'UNKNOWN', 'MANUAL_REVIEW'],
   SUCCEEDED: [],
   FAILED: [],
-  UNKNOWN: ['SUCCEEDED', 'FAILED'],
+  UNKNOWN: ['SUCCEEDED', 'FAILED', 'MANUAL_REVIEW'],
+  MANUAL_REVIEW: [],
 }
 
 export function assertProposalTransition(from: ProposalStatus, to: ProposalStatus): void {

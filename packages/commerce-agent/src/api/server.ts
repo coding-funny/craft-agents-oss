@@ -12,6 +12,9 @@ import { InvestigationRepository } from '../storage/investigation-repository.ts'
 import { RequestIdempotency } from './idempotency.ts'
 import { ScopedResources } from './resources.ts'
 import { CommerceApi } from './router.ts'
+import { DurableJobRepository } from '../jobs/repository.ts'
+import { OutboxRepository } from '../jobs/outbox.ts'
+import { createApprovalDecisionSink, createTaskJobSink } from '../jobs/integration.ts'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -35,7 +38,9 @@ export function createApiFromEnvironment(): { api: CommerceApi; store: CommerceD
   const reports = new ReportRepository(artifactDir, store)
   const evidence = new EvidenceRepository(store)
   const proposals = new ProposalRepository(store)
-  const approvals = new ApprovalService({ repository: proposals })
+  const jobs = new DurableJobRepository(store)
+  const outbox = new OutboxRepository(store)
+  const approvals = new ApprovalService({ repository: proposals, decisionSink: createApprovalDecisionSink(jobs, outbox) })
   const oidc = new OidcService({
     repository: identity,
     config: {
@@ -54,6 +59,7 @@ export function createApiFromEnvironment(): { api: CommerceApi; store: CommerceD
     idempotency: new RequestIdempotency(store.database),
     allowedOrigins: required('COMMERCE_ALLOWED_ORIGINS').split(',').map(value => value.trim()).filter(Boolean),
     asOf: required('COMMERCE_AS_OF'), fixtureDigest: required('COMMERCE_DATA_DIGEST'), budget: DEFAULT_BUDGET,
+    taskSink: createTaskJobSink(jobs, outbox),
   })
   return { api, store }
 }

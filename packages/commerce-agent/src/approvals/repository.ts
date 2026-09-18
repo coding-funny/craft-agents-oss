@@ -66,7 +66,7 @@ export type ExecutionAttempt = {
   attemptId: string
   proposalId: string
   idempotencyKey: string
-  status: 'EXECUTING' | 'SUCCEEDED' | 'FAILED' | 'UNKNOWN'
+  status: 'EXECUTING' | 'SUCCEEDED' | 'FAILED' | 'UNKNOWN' | 'MANUAL_REVIEW'
   externalOperationId?: string
   before?: unknown
   after?: unknown

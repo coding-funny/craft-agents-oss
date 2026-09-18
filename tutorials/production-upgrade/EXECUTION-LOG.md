@@ -6,14 +6,14 @@
 
 01 链路已完成 B00—B07 编码和离线验收；02、03 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移、外部企业 IdP 或部署验收。
 
-当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-03`，父实现 commit=`1f9f4bf5`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
+当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-04`，父实现 commit=`d8a64666`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
 
 | 链路 | 状态 | 当前批次 | 代码/验收证据 | 下一步 |
 | --- | --- | --- | --- | --- |
 | 01 真实模型与动态调查 | CODE_READY / B08 BLOCKED_EXTERNAL | B00—B07 完成 | 32 项 agent 测试；真实 stdio MCP 纵向链路；20 条 dev | 提供明确 live 模型配置与预算后执行 5 条 smoke |
 | 02 数据接入与证据治理 | CODE_READY / 外部验收阻塞 | B00—B07 本地完成 | 124 项全回归；多格式导入、不可变 snapshot、真实 stdio imported MCP | 提供 PostgreSQL URL 与授权数据后补 B07/B08 |
 | 03 身份授权与审批治理 | CODE_READY / 外部验收阻塞 | B00—B06 本地完成 | 141 项全回归；真实本地 OIDC HTTP；RBAC/API/审批/撤销/RLS 合同 | 提供 PostgreSQL 应用角色与外部 IdP 后补 B07 |
-| 04 持久任务与可靠执行 | PLANNED | 无 | 无 | 等待身份与审批契约 |
+| 04 持久任务与可靠执行 | CODE_READY / 外部验收待执行 | B00—B07 本地完成 | 156 项全回归；多进程租约、独立 HTTP 平台、UNKNOWN 对账 | 真 PostgreSQL 和授权平台验收 |
 | 05 真实评测与回归门禁 | PLANNED | 无 | 无 | 种子工作随 01 开始 |
 | 06 运营交互与业务反馈 | PLANNED | 无 | 无 | 等待 API 与任务契约 |
 | 07 部署运维与试运行验收 | PLANNED | 无 | 无 | 环境基础随 02 建立 |
@@ -107,7 +107,18 @@
 - Verify：Bun 1.4.2；`commerce:typecheck` exit 0；完整 `commerce:test` 为 141 passed / 0 failed / 449 assertions。本地签名 IdP 通过真实 loopback HTTP authorize/token/JWKS，state replay 被拒绝。
 - Review：跨 tenant 对象统一 404；同 tenant 未授权 shop 拒绝；Idempotency-Key 同 payload replay、异 payload 409；approve/reject 竞态仅一个终态；审批人撤销后执行 fail-closed。未将本地 IdP 称为企业 SSO。
 - Handoff：`packages/commerce-agent/docs/implementation/03/{identity-adr,permissions,api,acceptance,handoff}.md`。04 应复用 service principal 与 approvalGuard，不恢复任意 actor 字符串。
-- Git：待本轮精确暂存并提交；用户已有 `packages/core/src/types/index.ts` 暂存修改不纳入。
+- Git：以 `feat(commerce): add identity and approval governance` 独立提交 03 文件；用户已有 `packages/core/src/types/index.ts` 暂存修改保持不动且不纳入。
+
+## 04 实施记录（当前工作区）
+
+- 状态：CODE_READY；真 PostgreSQL 与授权远端平台为 BLOCKED_EXTERNAL。
+- Plan：在 01 task/run/checkpoint 与 03 service identity/approvalGuard 基础上，增加持久 job、lease epoch fencing、outbox、发送前记账、远端幂等/版本条件和 UNKNOWN 有界对账。
+- Execute：实现 DurableJobRepository/Worker/handlers，租户并发上限、心跳、取消、过期接管、checkpoint、MANUAL_REVIEW；task/审批与 job/outbox 同事务；ActionExecutor/HTTP adapter/ReliableExecutionService 实现 PREPARED→SENT→UNKNOWN/APPLIED 协议。
+- PostgreSQL：新增 `0003_durable_jobs_execution.sql`，含 RLS/FORCE RLS、tenant policy、索引与 `FOR UPDATE SKIP LOCKED` claim function。当前无真库，只通过静态契约检查。
+- Verify：Bun 1.4.2；`commerce:typecheck` exit 0；`commerce:test:runtime` 8 pass；`commerce:test:execution-http` 7 pass；完整 `commerce:test` 156 pass / 0 fail / 516 assertions。
+- Review：两个独立 Bun 进程竞争 20 jobs 无重复 checkpoint；平台已应用但返回 503 时本地进 UNKNOWN，lookup 恢复 APPLIED，POST/effect 均为 1；非权威 NOT_FOUND 不盲重发；无幂等且无 lookup 转人工。
+- Handoff：`packages/commerce-agent/docs/implementation/04/{runtime-adr,execution-boundaries,acceptance,handoff}.md`。05 消费故障统计；06 展示等待/取消/UNKNOWN/人工队列；07 执行真 PostgreSQL 并发与运维验收。
+- Git：以 `feat(commerce): add durable jobs and reliable execution` 独立提交 04 文件；用户已有 `packages/core/src/types/index.ts` 暂存修改保持不动且不纳入。
 
 ## 执行批次模板
 

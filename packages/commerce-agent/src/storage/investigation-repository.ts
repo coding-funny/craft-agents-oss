@@ -83,7 +83,7 @@ export class InvestigationRepository {
     this.#db = store.database
   }
 
-  async createTask(task: InvestigationTask, budget: BudgetConfig): Promise<void> {
+  async createTask(task: InvestigationTask, budget: BudgetConfig, onPersisted?: () => void): Promise<void> {
     const existing = this.#db.query<TaskRow, [string]>('SELECT * FROM investigation_tasks WHERE task_id = ?1').get(task.taskId)
     const transaction = this.#db.transaction(() => {
       if (!existing) {
@@ -97,6 +97,7 @@ export class InvestigationRepository {
           JSON.stringify(budget), task.createdAt,
         )
         this.#insertTaskVersion(task, budget)
+        onPersisted?.()
         return
       }
       if (existing.version === task.version) {
@@ -104,6 +105,7 @@ export class InvestigationRepository {
         if (JSON.stringify(persisted) !== JSON.stringify(task)) {
           throw new CommerceError('INVALID_ARGUMENT', 'Task version already exists with different content')
         }
+        onPersisted?.()
         return
       }
       if (task.version !== existing.version + 1) throw new CommerceError('INVALID_ARGUMENT', 'Task version must advance by exactly one')
@@ -116,6 +118,7 @@ export class InvestigationRepository {
       )
       if (updated.changes !== 1) throw new CommerceError('INVALID_ARGUMENT', 'Task version update lost a concurrency race')
       this.#insertTaskVersion(task, budget)
+      onPersisted?.()
     })
     try {
       transaction.immediate()

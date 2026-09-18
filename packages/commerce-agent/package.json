@@ -30,6 +30,8 @@
     "server": "bun run src/mcp/server.ts",
     "api": "bun run src/api/server.ts",
     "test:auth": "bun test tests/auth tests/api tests/approval-policy",
+    "test:runtime": "bun test tests/runtime",
+    "test:execution-http": "bun test tests/execution-http",
     "setup": "bun run src/setup/cli.ts",
     "demo:diagnose": "bun run src/demo/diagnose.ts",
     "demo:proposal": "bun run src/cli/create-proposal.ts",

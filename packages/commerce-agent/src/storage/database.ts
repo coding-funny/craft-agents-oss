@@ -358,6 +358,80 @@ export class CommerceDatabase {
         created_at TEXT NOT NULL,
         PRIMARY KEY(tenant_id, actor_id, operation, request_key)
       );
+      CREATE TABLE IF NOT EXISTS commerce_jobs (
+        job_id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        business_key TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        priority INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL,
+        available_at TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL,
+        lease_owner TEXT,
+        lease_until TEXT,
+        lease_epoch INTEGER NOT NULL DEFAULT 0,
+        cancel_requested_at TEXT,
+        last_error_json TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(kind, tenant_id, business_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_jobs_claim
+        ON commerce_jobs(status, available_at, priority DESC, created_at);
+      CREATE INDEX IF NOT EXISTS idx_commerce_jobs_tenant_lease
+        ON commerce_jobs(tenant_id, status, lease_until);
+      CREATE TABLE IF NOT EXISTS commerce_job_checkpoints (
+        job_id TEXT NOT NULL,
+        checkpoint_key TEXT NOT NULL,
+        lease_epoch INTEGER NOT NULL,
+        state_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(job_id, checkpoint_key),
+        FOREIGN KEY(job_id) REFERENCES commerce_jobs(job_id)
+      );
+      CREATE TABLE IF NOT EXISTS commerce_outbox (
+        event_id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        aggregate_type TEXT NOT NULL,
+        aggregate_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        payload_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        available_at TEXT NOT NULL,
+        lease_owner TEXT,
+        lease_until TEXT,
+        created_at TEXT NOT NULL,
+        published_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_commerce_outbox_claim
+        ON commerce_outbox(status, available_at, created_at);
+      CREATE TABLE IF NOT EXISTS commerce_execution_requests (
+        request_id TEXT PRIMARY KEY,
+        proposal_id TEXT NOT NULL UNIQUE,
+        tenant_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        payload_hash TEXT NOT NULL,
+        request_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        external_operation_id TEXT,
+        result_json TEXT,
+        lookup_attempts INTEGER NOT NULL DEFAULT 0,
+        next_lookup_at TEXT,
+        uncertainty_deadline TEXT NOT NULL,
+        last_error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(proposal_id) REFERENCES proposals(proposal_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_execution_requests_reconcile
+        ON commerce_execution_requests(status, next_lookup_at);
     `)
     ensureColumn(this.database, 'reports', 'tenant_id', 'TEXT')
     ensureColumn(this.database, 'reports', 'shop_id', 'TEXT')
@@ -373,6 +447,7 @@ export class CommerceDatabase {
     ensureColumn(this.database, 'approvals', 'session_id', 'TEXT')
     ensureColumn(this.database, 'approvals', 'policy_version', "TEXT NOT NULL DEFAULT 'approval-policy-v1'")
     ensureColumn(this.database, 'approvals', 'reason_code', "TEXT NOT NULL DEFAULT 'ALLOW_LEGACY_TEST'")
+    ensureColumn(this.database, 'commerce_outbox', 'shop_id', "TEXT NOT NULL DEFAULT 'UNKNOWN'")
   }
 
   saveEvidence(record: EvidenceRecord): void {
