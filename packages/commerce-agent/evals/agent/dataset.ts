@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { z } from 'zod'
+import { createHash } from 'node:crypto'
 import { AgentEvalCaseSchema, AgentEvalGoldSchema, type AgentEvalCase, type AgentEvalGold } from './schemas.ts'
 
 async function jsonl<T>(path: string, schema: z.ZodType<T>): Promise<T[]> {
@@ -16,6 +17,7 @@ export async function loadAgentEval(root = import.meta.dir): Promise<{
   cases: AgentEvalCase[]
   gold: AgentEvalGold[]
   splits: { dev: string[]; smoke: string[] }
+  digest: string
 }> {
   const [cases, gold, splitsValue] = await Promise.all([
     jsonl(resolve(root, 'cases/dev.jsonl'), AgentEvalCaseSchema),
@@ -31,5 +33,6 @@ export async function loadAgentEval(root = import.meta.dir): Promise<{
   if (JSON.stringify([...caseIds].sort()) !== JSON.stringify([...goldIds].sort())) throw new Error('Case and gold IDs do not align')
   if (JSON.stringify([...caseIds].sort()) !== JSON.stringify([...splits.dev].sort())) throw new Error('Dev split does not contain all cases')
   if (splits.smoke.some(id => !caseIds.includes(id))) throw new Error('Smoke split contains an unknown ID')
-  return { cases, gold, splits }
+  const digest = createHash('sha256').update(JSON.stringify({ cases, gold, splits })).digest('hex')
+  return { cases, gold, splits, digest }
 }

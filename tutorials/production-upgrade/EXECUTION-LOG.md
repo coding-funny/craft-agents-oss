@@ -6,7 +6,7 @@
 
 01 链路已完成 B00—B07 编码和离线验收；02、03 链路已完成本地代码与离线验收。未运行真实模型，未接入真实商家数据，未执行真实 PostgreSQL 迁移、外部企业 IdP 或部署验收。
 
-当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-04`，父实现 commit=`d8a64666`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
+当前工作目录：`/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。执行分支 `codex/production-upgrade-05`，父实现 commit=`cf73e791`；用户暂存的 `packages/core/src/types/index.ts` 修改保持不动且不纳入提交。
 
 | 链路 | 状态 | 当前批次 | 代码/验收证据 | 下一步 |
 | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@
 | 02 数据接入与证据治理 | CODE_READY / 外部验收阻塞 | B00—B07 本地完成 | 124 项全回归；多格式导入、不可变 snapshot、真实 stdio imported MCP | 提供 PostgreSQL URL 与授权数据后补 B07/B08 |
 | 03 身份授权与审批治理 | CODE_READY / 外部验收阻塞 | B00—B06 本地完成 | 141 项全回归；真实本地 OIDC HTTP；RBAC/API/审批/撤销/RLS 合同 | 提供 PostgreSQL 应用角色与外部 IdP 后补 B07 |
 | 04 持久任务与可靠执行 | CODE_READY / 外部验收待执行 | B00—B07 本地完成 | 156 项全回归；多进程租约、独立 HTTP 平台、UNKNOWN 对账 | 真 PostgreSQL 和授权平台验收 |
-| 05 真实评测与回归门禁 | PLANNED | 无 | 无 | 种子工作随 01 开始 |
+| 05 真实评测与回归门禁 | EVAL_INFRA_READY / 外部证据待补 | B00—B07 基础设施完成 | RunEvidence、重复聚合、人工复核队列、fail-closed gate/compare/CI | 扩展 40 dev + 20 holdout，执行 live repeats 与人工复核 |
 | 06 运营交互与业务反馈 | PLANNED | 无 | 无 | 等待 API 与任务契约 |
 | 07 部署运维与试运行验收 | PLANNED | 无 | 无 | 环境基础随 02 建立 |
 
@@ -119,6 +119,17 @@
 - Review：两个独立 Bun 进程竞争 20 jobs 无重复 checkpoint；平台已应用但返回 503 时本地进 UNKNOWN，lookup 恢复 APPLIED，POST/effect 均为 1；非权威 NOT_FOUND 不盲重发；无幂等且无 lookup 转人工。
 - Handoff：`packages/commerce-agent/docs/implementation/04/{runtime-adr,execution-boundaries,acceptance,handoff}.md`。05 消费故障统计；06 展示等待/取消/UNKNOWN/人工队列；07 执行真 PostgreSQL 并发与运维验收。
 - Git：以 `feat(commerce): add durable jobs and reliable execution` 独立提交 04 文件；用户已有 `packages/core/src/types/index.ts` 暂存修改保持不动且不纳入。
+
+## 05 实施记录（当前工作区）
+
+- 状态：EVAL_INFRA_READY；DATASET_EXPANSION/MODEL_EVAL/HUMAN_REVIEW 为 PENDING_EXTERNAL。
+- Plan：保留现有 20 条 01 dev 种子，建立不将 deterministic/fake 结果冒充 live 质量的运行证据、重复聚合、成本/可靠性指标、人工复核和发布门禁。
+- Execute：实现 strict RunEvidence/Policy/AggregatedEvaluation schema，task-level repeats 聚合，actual/estimated/unknown usage 分层，04 lookup/recovery/manual-review/safety 指标，review queue，report/gate/compare/validate CLI 及 CI 契约测试。
+- Gate：非 live、缺样本/repeats、unknown cost 或未完成人工复核返回 BLOCKED；越权、未审批执行、重复副作用、未解释悬挂非零返回 FAIL。
+- Dataset：当前仍是 20 dev + 5 smoke，无独立 holdout。validator 明确输出三项 release blocker，未复制/改 ID 伪造 60 个独立任务。
+- Verify：Bun 1.4.2；`commerce:test:eval-agent` 12 pass / 0 fail / 43 assertions；`commerce:test` 165 pass / 0 fail / 549 assertions；`commerce:typecheck` exit 0；validator 稳定输出 dev digest 与三项 release blocker。
+- Handoff：`packages/commerce-agent/docs/implementation/05/{evaluation-adr,metrics,release-gate,acceptance}.md`。06 可消费 review/failure reason；07 需在真实部署环境运行锁定 gate。
+- Git：以 `feat(commerce): add evaluation and release gates` 独立提交 05 文件；用户暂存的 `packages/core/src/types/index.ts` 保持不动且不纳入。
 
 ## 执行批次模板
 

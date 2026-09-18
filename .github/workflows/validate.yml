@@ -43,3 +43,6 @@ jobs:
 
       - name: Run validation suite
         run: bun run validate:ci
+
+      - name: Validate commerce evaluation contracts
+        run: bun run commerce:test:eval-agent
