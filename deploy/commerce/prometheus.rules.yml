@@ -1,0 +1,18 @@
+groups:
+  - name: commerce-agent
+    rules:
+      - alert: CommerceWorkerHeartbeatStale
+        expr: commerce_worker_heartbeat_stale > 0
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "Commerce worker heartbeat is stale" }
+      - alert: CommerceUnknownExecutionPresent
+        expr: commerce_execution_unknown > 0
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Commerce execution requires reconciliation" }
+      - alert: CommerceManualReviewQueue
+        expr: commerce_jobs_manual_review > 0
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Commerce jobs are waiting for manual review" }

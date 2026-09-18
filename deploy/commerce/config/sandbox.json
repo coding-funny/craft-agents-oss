@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1, "environment": "sandbox", "publicOrigin": "http://127.0.0.1:8080", "bindHost": "127.0.0.1", "apiPort": 3210,
+  "allowedOrigins": ["http://127.0.0.1:8080"], "database": { "kind": "sqlite", "path": "/data/commerce.sqlite" },
+  "oidc": { "issuerEnv": "COMMERCE_OIDC_ISSUER", "audienceEnv": "COMMERCE_OIDC_AUDIENCE", "clientIdEnv": "COMMERCE_OIDC_CLIENT_ID", "authorizationEndpointEnv": "COMMERCE_OIDC_AUTHORIZATION_ENDPOINT", "tokenEndpointEnv": "COMMERCE_OIDC_TOKEN_ENDPOINT", "jwksUriEnv": "COMMERCE_OIDC_JWKS_URI", "callbackUrl": "http://127.0.0.1:8080/commerce-api/api/v1/auth/callback" },
+  "model": { "mode": "fake", "maximumDailyCostMicros": 1000000 }, "actions": { "mode": "test-platform", "enabled": true },
+  "workers": { "requiredKinds": [], "heartbeatStaleMs": 60000 }, "telemetry": { "enabled": false, "logRetentionDays": 14 }, "backup": { "directory": "/data/backups", "rpoHours": 24 }
+}

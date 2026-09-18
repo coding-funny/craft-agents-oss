@@ -142,6 +142,16 @@
 - Handoff：`packages/commerce-agent/docs/implementation/06/{architecture,operations,acceptance}.md`；开发环境 `/commerce-api` 已代理到 3210，07 需配置生产同源代理、OIDC callback、Worker/monitor 调度和浏览器 smoke。
 - Git：计划提交信息 `feat(commerce): add operations workbench and feedback loop`；用户原有 core 暂存改动继续排除。
 
+## 07 实施记录（当前工作区）
+
+- 状态：CODE_READY；PILOT 为 BLOCKED_EXTERNAL/IMPLEMENTATION_GAP。
+- Plan：提供可复现 sandbox 部署、配置 fail-fast、健康/指标、恢复校验、安全负载/soak 驱动、发布 manifest 门禁、CI 与运维交接；不把存在迁移 SQL 等同 PostgreSQL runtime 可用。
+- Execute：新增非 root API/UI Dockerfile、loopback Compose 和同源代理；deployment schema/preflight；liveness/readiness/Worker heartbeat 表；低基数指标、日志脱敏和告警规则；SQLite `VACUUM INTO` 隔离备份与 integrity/关键表 digest 校验；load/soak 安全护栏；pilot release gate；Runbook/SLO/Demo。
+- Verify：Bun 1.4.2；`commerce:test:deploy` 7 pass / 0 fail；`commerce:typecheck` 通过；完整 `commerce:test` 182 pass / 0 fail / 608 assertions；WebUI typecheck 和 production build 通过；Compose/Prometheus YAML 由 js-yaml 解析通过；sandbox preflight PASS 且明确 `FAKE_MODEL_MODE`。当前主机无 Docker，镜像未实际构建。
+- Review：metrics 不经 public nginx 暴露；preflight 不输出 secret 值；load/soak 只允许 loopback fixture/sandbox；backup 不覆盖源库。Pilot 强制阻断未接入的 PostgreSQL runtime 与 OTLP exporter，release manifest 还要求 Worker runtime、browser E2E、恢复和 24h soak。
+- 外部/实现阻塞：无 Docker runtime、专用 PostgreSQL、企业 IdP、OTLP/告警后端、真实模型预算、浏览器 runner、授权数据/平台和 pilot 使用者；DurableWorker 尚无部署进程入口。不能标 VERIFIED/生产上线。
+- Git：本批次以 `feat(commerce): add deployment and operations readiness` 提交；用户已有 `packages/core/src/types/index.ts` 暂存修改保持排除。
+
 ## 执行批次模板
 
 复制本节为新批次，实际执行前填写 Plan，执行后填写结果。模板中的占位内容不是证据。

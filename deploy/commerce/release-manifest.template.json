@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1, "environment": "pilot", "commit": "0000000", "imageDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "schemaVersions": ["0001", "0002", "0003", "0004"], "versions": { "model": "unverified", "prompt": "commerce-v1", "tool": "commerce-v1", "policy": "commerce-v1" },
+  "evaluation": { "decision": "BLOCKED", "evidenceMode": "fixture", "datasetDigest": "unverified", "reviewComplete": false },
+  "tests": { "commercePassed": false, "webuiBuildPassed": false, "postgresVerified": false, "browserE2ePassed": false, "telemetryVerified": false, "workerRuntimeVerified": false, "backupRestoreVerified": false, "soakHours": 0 }, "createdAt": "2026-09-18T00:00:00.000Z"
+}

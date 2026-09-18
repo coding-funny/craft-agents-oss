@@ -514,6 +514,16 @@ export class CommerceDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_case_memory_scope
         ON commerce_case_memory(tenant_id, shop_id, anomaly_type, entity_id, reviewed_at DESC);
+      CREATE TABLE IF NOT EXISTS commerce_worker_heartbeats (
+        worker_id TEXT PRIMARY KEY,
+        worker_kind TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        heartbeat_at TEXT NOT NULL,
+        build_version TEXT NOT NULL,
+        metadata_json TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_kind_time
+        ON commerce_worker_heartbeats(worker_kind, heartbeat_at DESC);
     `)
     ensureColumn(this.database, 'reports', 'tenant_id', 'TEXT')
     ensureColumn(this.database, 'reports', 'shop_id', 'TEXT')

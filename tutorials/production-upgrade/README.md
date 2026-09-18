@@ -1,6 +1,6 @@
 # 电商 Agent 生产化升级：Plan-and-Execute 入口
 
-规划日期：2026-09-18。当前状态：01 已达到 CODE_READY，真实模型 B08 待外部配置；02 已达到 CODE_READY，PostgreSQL 真库与授权数据验收待外部条件；03—07 尚未开始。
+规划日期：2026-09-18。当前状态：01—06 已达到各自代码/基础设施就绪边界；07 已达到 CODE_READY，镜像实构建、OTLP/告警、Worker 进程、真实模型、PostgreSQL runtime、浏览器 E2E、24h soak 与真实试运行仍是发布门禁。
 
 工作目录已更正为 `/Users/chenglin.zhou/Projects/Demo/agent/craft-agents-oss`。commerce 基线和 01 动态调查运行时已迁入并通过当前工作区回归；详细执行证据位于 `packages/commerce-agent/docs/implementation/01/`。
 
@@ -123,4 +123,4 @@ Git 操作按当次授权执行。提交前检查 diff，仅暂存本链路相�
 
 初版规划依据旧工作区 `0561730` 的历史记录。2026-09-18 在用户指定的新目录从 HEAD=`e8963854` 建立 `codex/production-upgrade-01`，完成 B00 基线恢复和 B01—B07 实现；fake/fixture 测试不替代真实模型或真实经营数据证据。
 
-下一次执行入口：[03 身份授权与审批治理链路](./03-身份授权与审批治理链路.md)。
+下一次执行入口：按 [07 部署运维与试运行验收](./07-部署运维与试运行验收链路.md) 准备专用 pilot 环境并逐项关闭外部门禁。

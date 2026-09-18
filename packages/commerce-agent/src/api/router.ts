@@ -16,6 +16,8 @@ import type { InvestigationTask } from '../contracts/task.ts'
 import type { FeedbackService } from '../feedback/service.ts'
 import type { MonitorRepository } from '../monitoring/repository.ts'
 import { TaskListQuerySchema } from './contracts.ts'
+import type { HealthService } from '../health/health-service.ts'
+import type { CommerceMetrics } from '../observability/metrics.ts'
 
 type CommerceApiOptions = {
   identity: IdentityRepository
@@ -32,6 +34,8 @@ type CommerceApiOptions = {
   taskSink?: (task: InvestigationTask, now: string) => void
   feedback?: FeedbackService
   monitoring?: MonitorRepository
+  health?: HealthService
+  metrics?: CommerceMetrics
 }
 
 function routeId(pathname: string, prefix: string, suffix = ''): string | undefined {
@@ -56,6 +60,15 @@ export class CommerceApi {
     let principalResolved = false
     try {
       if (request.method === 'OPTIONS') return this.#cors(new Response(null, { status: 204 }), request)
+      if (request.method === 'GET' && url.pathname === '/health/live') return this.#json(this.#options.health?.liveness() ?? { status: 'UP' })
+      if (request.method === 'GET' && url.pathname === '/health/ready') {
+        const result = this.#options.health?.readiness() ?? { status: 'NOT_READY', checks: { health: { ok: false, detail: 'health service unavailable' } } }
+        return this.#json(result, result.status === 'READY' ? 200 : 503, { 'cache-control': 'no-store' })
+      }
+      if (request.method === 'GET' && url.pathname === '/metrics') {
+        if (!this.#options.metrics) return new Response('metrics unavailable\n', { status: 503 })
+        return new Response(this.#options.metrics.render(), { headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8', 'cache-control': 'no-store' } })
+      }
 
       if (request.method === 'GET' && url.pathname === '/api/v1/auth/start') {
         const { authorizationUrl } = this.#options.oidc.begin(url.searchParams.get('tenant') ?? undefined)

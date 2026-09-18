@@ -17,6 +17,8 @@ import { OutboxRepository } from '../jobs/outbox.ts'
 import { createApprovalDecisionSink, createTaskJobSink } from '../jobs/integration.ts'
 import { FeedbackService } from '../feedback/service.ts'
 import { MonitorRepository } from '../monitoring/repository.ts'
+import { HealthService } from '../health/health-service.ts'
+import { CommerceMetrics } from '../observability/metrics.ts'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -56,6 +58,7 @@ export function createApiFromEnvironment(): { api: CommerceApi; store: CommerceD
     },
   })
   const resources = new ScopedResources({ store, investigations, reports, evidence, proposals })
+  const requiredWorkerKinds = (process.env.COMMERCE_REQUIRED_WORKERS ?? '').split(',').map(value => value.trim()).filter(Boolean)
   const api = new CommerceApi({
     identity, oidc, investigations, approvals, resources,
     idempotency: new RequestIdempotency(store.database),
@@ -63,13 +66,26 @@ export function createApiFromEnvironment(): { api: CommerceApi; store: CommerceD
     asOf: required('COMMERCE_AS_OF'), fixtureDigest: required('COMMERCE_DATA_DIGEST'), budget: DEFAULT_BUDGET,
     taskSink: createTaskJobSink(jobs, outbox),
     feedback: new FeedbackService(store), monitoring: new MonitorRepository(store),
+    health: new HealthService(store, { requiredWorkerKinds }), metrics: new CommerceMetrics(store),
   })
   return { api, store }
 }
 
 if (import.meta.main) {
-  const { api } = createApiFromEnvironment()
+  const { api, store } = createApiFromEnvironment()
   const port = Number(process.env.COMMERCE_API_PORT ?? 3210)
-  Bun.serve({ port, fetch: request => api.fetch(request) })
-  console.error(`Commerce API listening on ${port}`)
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error('COMMERCE_API_PORT must be an integer from 1 to 65535')
+  const hostname = process.env.COMMERCE_API_HOST ?? '127.0.0.1'
+  const server = Bun.serve({ port, hostname, fetch: request => api.fetch(request) })
+  let shuttingDown = false
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    console.error(JSON.stringify({ level: 'info', event: 'shutdown', signal }))
+    await server.stop(false)
+    store.close()
+  }
+  process.once('SIGTERM', () => void shutdown('SIGTERM'))
+  process.once('SIGINT', () => void shutdown('SIGINT'))
+  console.error(`Commerce API listening on ${hostname}:${port}`)
 }

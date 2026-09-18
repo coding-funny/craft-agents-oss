@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1, "environment": "pilot", "publicOrigin": "https://commerce.example.invalid", "bindHost": "127.0.0.1", "apiPort": 3210,
+  "allowedOrigins": ["https://commerce.example.invalid"], "database": { "kind": "postgres", "urlEnv": "COMMERCE_DATABASE_URL" },
+  "oidc": { "issuerEnv": "COMMERCE_OIDC_ISSUER", "audienceEnv": "COMMERCE_OIDC_AUDIENCE", "clientIdEnv": "COMMERCE_OIDC_CLIENT_ID", "authorizationEndpointEnv": "COMMERCE_OIDC_AUTHORIZATION_ENDPOINT", "tokenEndpointEnv": "COMMERCE_OIDC_TOKEN_ENDPOINT", "jwksUriEnv": "COMMERCE_OIDC_JWKS_URI", "callbackUrl": "https://commerce.example.invalid/commerce-api/api/v1/auth/callback" },
+  "model": { "mode": "live", "apiKeyEnv": "COMMERCE_MODEL_API_KEY", "maximumDailyCostMicros": 5000000 }, "actions": { "mode": "test-platform", "enabled": true },
+  "workers": { "requiredKinds": ["INVESTIGATE", "EXECUTE", "RECONCILE"], "heartbeatStaleMs": 60000 }, "telemetry": { "enabled": true, "endpointEnv": "OTEL_EXPORTER_OTLP_ENDPOINT", "logRetentionDays": 30 }, "backup": { "directory": "/backups", "rpoHours": 24 }
+}

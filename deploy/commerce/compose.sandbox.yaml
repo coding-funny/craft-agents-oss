@@ -1,0 +1,20 @@
+services:
+  commerce-api:
+    build: { context: ../.., dockerfile: deploy/commerce/Dockerfile.api }
+    env_file: .env.sandbox
+    environment: { COMMERCE_API_HOST: 0.0.0.0, COMMERCE_DB_PATH: /data/commerce.sqlite, COMMERCE_REPORT_DIR: /data/reports }
+    volumes: ["commerce-data:/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://127.0.0.1:3210/health/ready');process.exit(r.ok?0:1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 15s
+  webui:
+    build: { context: ../.., dockerfile: deploy/commerce/Dockerfile.webui }
+    depends_on: { commerce-api: { condition: service_healthy } }
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+volumes:
+  commerce-data:
