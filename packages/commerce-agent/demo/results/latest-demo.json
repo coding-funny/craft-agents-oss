@@ -1,0 +1,45 @@
+{
+  "sourceSetup": {
+    "created": 0,
+    "unchanged": 7
+  },
+  "mcpSmoke": {
+    "toolCount": 9,
+    "netSalesMinor": 110000,
+    "traceId": "trace-demo-mcp"
+  },
+  "firstRun": {
+    "sessionId": "session-commerce-demo-ads",
+    "caseName": "ads-conversion",
+    "status": "SUCCEEDED",
+    "reportId": "report_20d555564f9f5ab3528baef5",
+    "proposalId": "proposal_31a4c24d9cfc8139a6590739",
+    "traceId": "trace-recovery-74299bc0dfadb104fa7e0e3c",
+    "parentTraceId": "trace-recovery-8ade231200682280c7967060",
+    "replayed": true,
+    "completionReason": "Already succeeded; no side effect repeated.",
+    "elapsedMs": 8.09,
+    "eventCount": 12
+  },
+  "replayRun": {
+    "sessionId": "session-commerce-demo-ads",
+    "caseName": "ads-conversion",
+    "status": "SUCCEEDED",
+    "reportId": "report_20d555564f9f5ab3528baef5",
+    "proposalId": "proposal_31a4c24d9cfc8139a6590739",
+    "traceId": "trace-recovery-9e30a68e43fa1b33b66170ed",
+    "parentTraceId": "trace-recovery-74299bc0dfadb104fa7e0e3c",
+    "replayed": true,
+    "completionReason": "Already succeeded; no side effect repeated.",
+    "elapsedMs": 2.52,
+    "eventCount": 13
+  },
+  "operationCount": 1,
+  "auditEventCount": 5,
+  "caseEventCount": 13,
+  "evidence": {
+    "databasePath": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/runtime/case/commerce.sqlite",
+    "reportDirectory": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/runtime/case/reports",
+    "summaryPath": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/results/latest-demo.json"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "commerce-demo-source",
+  "name": "Commerce Demo",
+  "slug": "commerce",
+  "enabled": true,
+  "provider": "commerce-demo",
+  "type": "mcp",
+  "icon": "🛒",
+  "tagline": "查询演示店铺经营数据并创建受人工审批约束的 Mock 提案",
+  "mcp": {
+    "transport": "stdio",
+    "command": "/opt/homebrew/Cellar/bun/1.4.2/bin/bun",
+    "args": [
+      "run",
+      "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/src/mcp/server.ts"
+    ],
+    "env": {
+      "COMMERCE_MODE": "governed-mock",
+      "COMMERCE_SHOP_ID": "demo-shop",
+      "COMMERCE_FIXTURE_DIR": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/fixtures",
+      "COMMERCE_TRACE_FILE": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/runtime/workspace/.commerce/traces.jsonl",
+      "COMMERCE_REPORT_DIR": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/runtime/workspace/.commerce/reports",
+      "COMMERCE_DB_PATH": "/Users/chenglin.zhou/Projects/shopee-learn/fall recruitment/craft-resume/craft-agents-oss/packages/commerce-agent/demo/runtime/workspace/.commerce/commerce.sqlite"
+    }
+  }
+}

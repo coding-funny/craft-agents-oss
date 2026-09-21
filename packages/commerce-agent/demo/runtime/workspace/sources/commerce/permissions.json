@@ -1,0 +1,9 @@
+{
+  "allowedMcpPatterns": [
+    "(query_sales|query_inventory|query_promotions|compute_margin|query_ads|get_evidence|validate_report|create_proposal|get_proposal)$"
+  ],
+  "allowedBashPatterns": [],
+  "allowedApiEndpoints": [],
+  "allowedWritePaths": [],
+  "blockedCommandHints": []
+}
