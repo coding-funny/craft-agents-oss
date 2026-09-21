@@ -12,6 +12,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createWebApi } from './adapter/web-api'
 import type { WsRpcClient } from '../../electron/src/transport/client'
+import CommerceWorkbench from './commerce/CommerceWorkbench'
 
 // Lazy-load the Electron App after window.electronAPI is set up.
 // This prevents any Electron component from accessing window.electronAPI
@@ -60,7 +61,7 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
   )
 }
 
-export default function App() {
+function GeneralApp() {
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState('')
   const clientRef = useRef<WsRpcClient | null>(null)
@@ -146,4 +147,8 @@ export default function App() {
       <ElectronApp />
     </Suspense>
   )
+}
+
+export default function App() {
+  return window.location.pathname.startsWith('/commerce') ? <CommerceWorkbench /> : <GeneralApp />
 }

@@ -1,0 +1,11 @@
+{
+  "sessionId": "session-commerce-demo-ads",
+  "traceId": "trace-recovery-9e30a68e43fa1b33b66170ed",
+  "parentTraceId": "trace-recovery-74299bc0dfadb104fa7e0e3c",
+  "reportId": "report_20d555564f9f5ab3528baef5",
+  "proposalId": "proposal_31a4c24d9cfc8139a6590739",
+  "status": "SUCCEEDED",
+  "operationCount": 1,
+  "auditEventCount": 5,
+  "caseEventCount": 13
+}

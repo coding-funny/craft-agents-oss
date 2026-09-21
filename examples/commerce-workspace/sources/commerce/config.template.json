@@ -1,0 +1,23 @@
+{
+  "id": "commerce-demo-source",
+  "name": "Commerce Demo",
+  "slug": "commerce",
+  "enabled": true,
+  "provider": "commerce-demo",
+  "type": "mcp",
+  "icon": "🛒",
+  "tagline": "查询经营数据并创建受人工审批约束的 Mock 提案",
+  "mcp": {
+    "transport": "stdio",
+    "command": "<ABSOLUTE_BUN_PATH>",
+    "args": ["run", "<ABSOLUTE_REPO_PATH>/packages/commerce-agent/src/mcp/server.ts"],
+    "env": {
+      "COMMERCE_MODE": "governed-mock",
+      "COMMERCE_SHOP_ID": "demo-shop",
+      "COMMERCE_FIXTURE_DIR": "<ABSOLUTE_REPO_PATH>/packages/commerce-agent/fixtures",
+      "COMMERCE_TRACE_FILE": "<ABSOLUTE_WORKSPACE_PATH>/.commerce/traces.jsonl",
+      "COMMERCE_REPORT_DIR": "<ABSOLUTE_WORKSPACE_PATH>/.commerce/reports",
+      "COMMERCE_DB_PATH": "<ABSOLUTE_WORKSPACE_PATH>/.commerce/commerce.sqlite"
+    }
+  }
+}

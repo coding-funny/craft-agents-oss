@@ -1,0 +1,11 @@
+[
+  {"snapshotId":"INV-A-01","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-01T00:00:00+08:00","availableQty":40,"lockedQty":0},
+  {"snapshotId":"INV-A-07","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-07T23:00:00+08:00","availableQty":20,"lockedQty":0},
+  {"snapshotId":"INV-A-08","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-08T00:00:00+08:00","availableQty":20,"lockedQty":0},
+  {"snapshotId":"INV-A-10","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-10T23:00:00+08:00","availableQty":5,"lockedQty":1},
+  {"snapshotId":"INV-A-11","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-11T23:00:00+08:00","availableQty":0,"lockedQty":0},
+  {"snapshotId":"INV-A-14","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-A","observedAt":"2026-09-14T23:00:00+08:00","availableQty":0,"lockedQty":0},
+  {"snapshotId":"INV-B-14","shopId":"demo-shop","productId":"P-TSHIRT","skuId":"SKU-B","observedAt":"2026-09-14T23:00:00+08:00","availableQty":60,"lockedQty":2},
+  {"snapshotId":"INV-C-14","shopId":"demo-shop","productId":"P-HEADPHONE","skuId":"SKU-C","observedAt":"2026-09-14T23:00:00+08:00","availableQty":25,"lockedQty":1},
+  {"snapshotId":"INV-Z-14","shopId":"demo-shop","productId":"P-IDLE","skuId":"SKU-Z","observedAt":"2026-09-14T23:00:00+08:00","availableQty":100,"lockedQty":0}
+]

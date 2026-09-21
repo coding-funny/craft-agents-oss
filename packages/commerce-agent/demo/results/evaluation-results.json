@@ -1,0 +1,640 @@
+{
+  "report": {
+    "mode": "deterministic-offline",
+    "datasetSize": 24,
+    "splitCounts": {
+      "dev": 16,
+      "holdout": 8
+    },
+    "passed": 24,
+    "failed": 0,
+    "passRate": 1,
+    "latencyMs": {
+      "total": 377.46,
+      "average": 15.73,
+      "p95": 30.95
+    },
+    "scores": {
+      "toolSelectionAccuracy": {
+        "passed": 9,
+        "total": 9,
+        "rate": 1
+      },
+      "argumentCorrectness": {
+        "passed": 13,
+        "total": 13,
+        "rate": 1
+      },
+      "evidenceCoverage": {
+        "passed": 9,
+        "total": 9,
+        "rate": 1
+      },
+      "numericCorrectness": {
+        "passed": 13,
+        "total": 13,
+        "rate": 1
+      },
+      "rootCauseSupport": {
+        "passed": 7,
+        "total": 7,
+        "rate": 1
+      },
+      "unsupportedClaimRate": {
+        "passed": 0,
+        "total": 7,
+        "rate": 0
+      },
+      "reportCompletionRate": {
+        "passed": 7,
+        "total": 7,
+        "rate": 1
+      },
+      "approvalSafety": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1
+      },
+      "idempotencySuccess": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1
+      },
+      "recoverySuccess": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1
+      }
+    },
+    "results": [
+      {
+        "id": "inventory-report-needs-data",
+        "split": "dev",
+        "category": "inventory",
+        "check": "diagnosis_status",
+        "passed": true,
+        "latencyMs": 43.2,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_bc76dfece6cb45371907ac73",
+          "reportStatus": "NEEDS_DATA",
+          "evidenceCount": 5,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "promotion-report-needs-data",
+        "split": "dev",
+        "category": "promotion",
+        "check": "diagnosis_status",
+        "passed": true,
+        "latencyMs": 14.59,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_fbb98208ba0fe627a940558f",
+          "reportStatus": "NEEDS_DATA",
+          "evidenceCount": 5,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "ads-report-resolved",
+        "split": "dev",
+        "category": "advertising",
+        "check": "diagnosis_status",
+        "passed": true,
+        "latencyMs": 15.32,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_20d555564f9f5ab3528baef5",
+          "reportStatus": "RESOLVED",
+          "evidenceCount": 4,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "ads-numeric-consistency",
+        "split": "dev",
+        "category": "advertising",
+        "check": "ads_numeric",
+        "passed": true,
+        "latencyMs": 14.87,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_20d555564f9f5ab3528baef5",
+          "reportStatus": "RESOLVED",
+          "evidenceCount": 4,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ],
+          "values": {
+            "net_sales": {
+              "baseline": 100000,
+              "current": 80000
+            },
+            "ad_spend": {
+              "baseline": 20000,
+              "current": 50000
+            },
+            "ad_ctr": {
+              "baseline": 0.05,
+              "current": 0.05
+            },
+            "ad_cvr": {
+              "baseline": 0.04,
+              "current": 0.016
+            },
+            "ad_cpc": {
+              "baseline": 40,
+              "current": 50
+            },
+            "ad_roas": {
+              "baseline": 5,
+              "current": 1.6
+            }
+          }
+        }
+      },
+      {
+        "id": "inventory-evidence-coverage",
+        "split": "dev",
+        "category": "inventory",
+        "check": "evidence_coverage",
+        "passed": true,
+        "latencyMs": 22.93,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_bc76dfece6cb45371907ac73",
+          "reportStatus": "NEEDS_DATA",
+          "evidenceCount": 5,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "promotion-evidence-coverage",
+        "split": "dev",
+        "category": "promotion",
+        "check": "evidence_coverage",
+        "passed": true,
+        "latencyMs": 16.09,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_fbb98208ba0fe627a940558f",
+          "reportStatus": "NEEDS_DATA",
+          "evidenceCount": 5,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "ads-evidence-coverage",
+        "split": "dev",
+        "category": "advertising",
+        "check": "evidence_coverage",
+        "passed": true,
+        "latencyMs": 16.95,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true,
+          "evidenceCoverage": true,
+          "numericCorrectness": true,
+          "rootCauseSupport": true,
+          "unsupportedClaimRate": false,
+          "reportCompletionRate": true
+        },
+        "details": {
+          "reportId": "report_20d555564f9f5ab3528baef5",
+          "reportStatus": "RESOLVED",
+          "evidenceCount": 4,
+          "tools": [
+            "query_ads",
+            "query_inventory",
+            "query_products",
+            "query_promotions",
+            "query_sales"
+          ]
+        }
+      },
+      {
+        "id": "cross-window-refund",
+        "split": "dev",
+        "category": "refund",
+        "check": "cross_window_refund",
+        "passed": true,
+        "latencyMs": 1.06,
+        "metrics": {
+          "argumentCorrectness": true,
+          "numericCorrectness": true
+        },
+        "details": {
+          "refundMinor": 10000
+        }
+      },
+      {
+        "id": "cancelled-order-excluded",
+        "split": "dev",
+        "category": "refund",
+        "check": "cancelled_excluded",
+        "passed": true,
+        "latencyMs": 0.38,
+        "metrics": {
+          "argumentCorrectness": true,
+          "numericCorrectness": true
+        },
+        "details": {
+          "lineIds": [
+            "A-1",
+            "A-3",
+            "A-4",
+            "A-5",
+            "A-CANCEL"
+          ],
+          "paidOrderCount": 3
+        }
+      },
+      {
+        "id": "sku-variant-isolation",
+        "split": "dev",
+        "category": "sku",
+        "check": "sku_isolation",
+        "passed": true,
+        "latencyMs": 0.27,
+        "metrics": {
+          "argumentCorrectness": true
+        },
+        "details": {
+          "skuIds": [
+            "SKU-A",
+            "SKU-B"
+          ]
+        }
+      },
+      {
+        "id": "zero-denominator-null",
+        "split": "dev",
+        "category": "missing-data",
+        "check": "zero_denominator",
+        "passed": true,
+        "latencyMs": 0.34,
+        "metrics": {
+          "numericCorrectness": true
+        },
+        "details": {
+          "ctr": null,
+          "roas": null
+        }
+      },
+      {
+        "id": "cross-currency-rejected",
+        "split": "dev",
+        "category": "currency",
+        "check": "cross_currency",
+        "passed": true,
+        "latencyMs": 0.57,
+        "metrics": {
+          "numericCorrectness": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "missing-cost-rejected",
+        "split": "dev",
+        "category": "contribution",
+        "check": "missing_cost",
+        "passed": true,
+        "latencyMs": 0.39,
+        "metrics": {
+          "numericCorrectness": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "conflicting-duplicate-rejected",
+        "split": "dev",
+        "category": "conflict",
+        "check": "conflicting_duplicate",
+        "passed": true,
+        "latencyMs": 0.56,
+        "metrics": {
+          "evidenceCoverage": true,
+          "numericCorrectness": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "needs-data-proposal-blocked",
+        "split": "dev",
+        "category": "approval",
+        "check": "needs_data_proposal",
+        "passed": true,
+        "latencyMs": 16.83,
+        "metrics": {
+          "approvalSafety": true
+        },
+        "details": {
+          "blocked": true
+        }
+      },
+      {
+        "id": "unapproved-execution-blocked",
+        "split": "dev",
+        "category": "approval",
+        "check": "approval_required",
+        "passed": true,
+        "latencyMs": 30.95,
+        "metrics": {
+          "approvalSafety": true
+        },
+        "details": {
+          "blocked": true
+        }
+      },
+      {
+        "id": "action-parameter-schema-rejected",
+        "split": "holdout",
+        "category": "schema",
+        "check": "action_schema",
+        "passed": true,
+        "latencyMs": 0.6,
+        "metrics": {
+          "argumentCorrectness": true,
+          "approvalSafety": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "persisted-report-tamper-rejected",
+        "split": "holdout",
+        "category": "evidence",
+        "check": "report_tamper",
+        "passed": true,
+        "latencyMs": 25.53,
+        "metrics": {
+          "evidenceCoverage": true,
+          "approvalSafety": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "idempotent-execution",
+        "split": "holdout",
+        "category": "execution",
+        "check": "idempotent_execution",
+        "passed": true,
+        "latencyMs": 28.6,
+        "metrics": {
+          "idempotencySuccess": true,
+          "approvalSafety": true
+        },
+        "details": {
+          "operationCount": 1,
+          "replayed": true
+        }
+      },
+      {
+        "id": "concurrent-execution-single-effect",
+        "split": "holdout",
+        "category": "execution",
+        "check": "concurrent_execution",
+        "passed": true,
+        "latencyMs": 87.11,
+        "metrics": {
+          "idempotencySuccess": true,
+          "approvalSafety": true
+        },
+        "details": {
+          "operationCount": 1,
+          "status": "SUCCEEDED",
+          "exitCodes": [
+            1,
+            0
+          ]
+        }
+      },
+      {
+        "id": "response-loss-reconciliation",
+        "split": "holdout",
+        "category": "recovery",
+        "check": "response_loss",
+        "passed": true,
+        "latencyMs": 14.26,
+        "metrics": {
+          "recoverySuccess": true,
+          "idempotencySuccess": true
+        },
+        "details": {
+          "operationCount": 1,
+          "reconciled": "SUCCEEDED"
+        }
+      },
+      {
+        "id": "session-interruption-recovery",
+        "split": "holdout",
+        "category": "recovery",
+        "check": "session_recovery",
+        "passed": true,
+        "latencyMs": 19.9,
+        "metrics": {
+          "recoverySuccess": true,
+          "idempotencySuccess": true
+        },
+        "details": {
+          "first": "REPORT_READY",
+          "resumed": "SUCCEEDED"
+        }
+      },
+      {
+        "id": "missing-source-binding-fails",
+        "split": "holdout",
+        "category": "harness",
+        "check": "missing_source",
+        "passed": true,
+        "latencyMs": 0.04,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true
+        },
+        "details": {
+          "rejected": true
+        }
+      },
+      {
+        "id": "hard-tool-budget-fails-before-query",
+        "split": "holdout",
+        "category": "harness",
+        "check": "tool_budget",
+        "passed": true,
+        "latencyMs": 6.12,
+        "metrics": {
+          "toolSelectionAccuracy": true,
+          "argumentCorrectness": true
+        },
+        "details": {
+          "rejected": true
+        }
+      }
+    ],
+    "limitations": [
+      "The 24 rows are synthetic deterministic regression cases over fixed fixtures, not 24 production merchant incidents.",
+      "No external LLM is invoked, so prompt robustness, token cost, and model variance are not measured.",
+      "Counterfactual baselines and ablations isolate engineering safeguards; they are not claims of model-quality uplift."
+    ]
+  },
+  "baselines": [
+    {
+      "name": "single-turn-full-data-without-tools",
+      "kind": "deterministic-counterfactual",
+      "sampleSize": 4,
+      "passed": 4,
+      "passRate": 1,
+      "evidenceCoverageRate": 0,
+      "approvalSafetyRate": null,
+      "description": "Uses the same fixture-derived conclusions but removes tool traces and repository-backed evidence; it is not an LLM measurement."
+    },
+    {
+      "name": "multi-step-without-governance-gates",
+      "kind": "deterministic-counterfactual",
+      "sampleSize": 24,
+      "passed": 18,
+      "passRate": 0.75,
+      "evidenceCoverageRate": 1,
+      "approvalSafetyRate": 0,
+      "description": "Keeps deterministic multi-step diagnosis but removes approval and execution gates; governance cases are therefore counted as failures."
+    }
+  ],
+  "ablations": [
+    {
+      "mechanism": "Skill/source binding",
+      "observedProbe": "missing_source",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "Without an explicit binding failure, the runner could silently execute outside the intended commerce context."
+    },
+    {
+      "mechanism": "Evidence gate",
+      "observedProbe": "report_tamper",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "A schema-only path cannot detect post-validation content changes or unsupported KPI values."
+    },
+    {
+      "mechanism": "Retry budget",
+      "observedProbe": "RATE_LIMITED once, then success",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "The bounded retry recovers one transient 429-equivalent failure; disabling retries fails the same probe immediately."
+    },
+    {
+      "mechanism": "Approval hash validation",
+      "observedProbe": "approval_required",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "A status-only approval check would not bind the operator decision to immutable action content."
+    },
+    {
+      "mechanism": "Idempotency ledger",
+      "observedProbe": "idempotent_execution",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "Without a unique idempotency key, retries can apply the same business mutation twice."
+    },
+    {
+      "mechanism": "Recovery state",
+      "observedProbe": "session_recovery",
+      "protectedPassed": true,
+      "withoutMechanismPassed": false,
+      "impact": "Without persisted case state, an interrupted run cannot resume from its report and proposal identifiers."
+    }
+  ]
+}

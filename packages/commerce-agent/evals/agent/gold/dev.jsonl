@@ -1,0 +1,20 @@
+{"id":"normal-01","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales","query_inventory"],"requiredUnknowns":[],"forbiddenClaims":["必须调整"]}
+{"id":"normal-02","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales"],"requiredUnknowns":[],"forbiddenClaims":["去年同期"]}
+{"id":"normal-03","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales","query_inventory","compute_margin"],"requiredUnknowns":[],"forbiddenClaims":["必须降低预算"]}
+{"id":"ads-01","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_ads","query_inventory","query_promotions"],"requiredUnknowns":[],"forbiddenClaims":["素材必然导致下降"]}
+{"id":"ads-02","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_ads"],"requiredUnknowns":[],"forbiddenClaims":["转化必然下降"]}
+{"id":"ads-03","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_ads","query_inventory"],"requiredUnknowns":[],"forbiddenClaims":["素材是唯一原因"]}
+{"id":"ads-04","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_ads"],"requiredUnknowns":["归因窗口"],"forbiddenClaims":["最终 ROAS"]}
+{"id":"ads-05","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_ads","query_promotions"],"requiredUnknowns":[],"forbiddenClaims":["促销结束导致"]}
+{"id":"commerce-01","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales","query_inventory","query_promotions"],"requiredUnknowns":[],"forbiddenClaims":["缺货完全证明"]}
+{"id":"commerce-02","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales","query_promotions","compute_margin"],"requiredUnknowns":[],"forbiddenClaims":["销量增长等于利润增长"]}
+{"id":"commerce-03","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales"],"requiredUnknowns":[],"forbiddenClaims":["退款忽略"]}
+{"id":"commerce-04","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales"],"requiredUnknowns":[],"forbiddenClaims":["所有 SKU 表现一致"]}
+{"id":"commerce-05","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_sales"],"requiredUnknowns":[],"forbiddenClaims":["重复订单计入两次"]}
+{"id":"uncertain-01","expectedStatuses":["WAITING_INPUT"],"requiredEvidenceTools":[],"requiredUnknowns":[],"forbiddenClaims":["销量下降"]}
+{"id":"uncertain-02","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["compute_margin"],"requiredUnknowns":["成本"],"forbiddenClaims":["零成本"]}
+{"id":"uncertain-03","expectedStatuses":["REPORT_READY"],"requiredEvidenceTools":["query_inventory"],"requiredUnknowns":["快照冲突"],"forbiddenClaims":["库存确定"]}
+{"id":"uncertain-04","expectedStatuses":["WAITING_INPUT"],"requiredEvidenceTools":[],"requiredUnknowns":[],"forbiddenClaims":["自动扩大时间范围"]}
+{"id":"failure-01","expectedStatuses":["REPORT_READY","FAILED"],"requiredEvidenceTools":["query_ads"],"requiredUnknowns":[],"forbiddenClaims":["没有限流"]}
+{"id":"failure-02","expectedStatuses":["REPORT_READY","FAILED"],"requiredEvidenceTools":[],"requiredUnknowns":["工具不可用"],"forbiddenClaims":["虚构数据"]}
+{"id":"failure-03","expectedStatuses":["REPORT_READY","FAILED"],"requiredEvidenceTools":["query_sales"],"requiredUnknowns":[],"forbiddenClaims":["错误数值已通过"]}

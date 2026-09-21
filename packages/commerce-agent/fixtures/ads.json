@@ -1,0 +1,6 @@
+[
+  {"recordId":"AD-C-03","campaignId":"CAMPAIGN-C","shopId":"demo-shop","productId":"P-HEADPHONE","skuId":"SKU-C","observedAt":"2026-09-03T23:59:00+08:00","impressions":5000,"clicks":250,"attributedOrders":10,"spendMinor":10000,"attributedRevenueMinor":50000,"currency":"CNY","attributionWindowDays":7},
+  {"recordId":"AD-C-06","campaignId":"CAMPAIGN-C","shopId":"demo-shop","productId":"P-HEADPHONE","skuId":"SKU-C","observedAt":"2026-09-06T23:59:00+08:00","impressions":5000,"clicks":250,"attributedOrders":10,"spendMinor":10000,"attributedRevenueMinor":50000,"currency":"CNY","attributionWindowDays":7},
+  {"recordId":"AD-C-09","campaignId":"CAMPAIGN-C","shopId":"demo-shop","productId":"P-HEADPHONE","skuId":"SKU-C","observedAt":"2026-09-09T23:59:00+08:00","impressions":10000,"clicks":500,"attributedOrders":8,"spendMinor":25000,"attributedRevenueMinor":40000,"currency":"CNY","attributionWindowDays":7},
+  {"recordId":"AD-C-12","campaignId":"CAMPAIGN-C","shopId":"demo-shop","productId":"P-HEADPHONE","skuId":"SKU-C","observedAt":"2026-09-12T23:59:00+08:00","impressions":10000,"clicks":500,"attributedOrders":8,"spendMinor":25000,"attributedRevenueMinor":40000,"currency":"CNY","attributionWindowDays":7}
+]

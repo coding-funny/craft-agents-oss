@@ -1,0 +1,124 @@
+{
+  "count": 11,
+  "passed": 11,
+  "results": [
+    {
+      "id": "mcp-timeout",
+      "injectedFailure": "MCP handler exceeds timeout",
+      "expectedBehavior": "Return UPSTREAM_TIMEOUT without hanging.",
+      "passed": true,
+      "latencyMs": 2.07,
+      "details": {
+        "code": "UPSTREAM_TIMEOUT"
+      }
+    },
+    {
+      "id": "rate-limit-retry",
+      "injectedFailure": "First MCP call returns 429-equivalent RATE_LIMITED",
+      "expectedBehavior": "Retry once within budget and return one successful result.",
+      "passed": true,
+      "latencyMs": 0.84,
+      "details": {
+        "attempts": 2
+      }
+    },
+    {
+      "id": "invalid-schema",
+      "injectedFailure": "Empty query arguments",
+      "expectedBehavior": "Reject before invoking a data adapter.",
+      "passed": true,
+      "latencyMs": 1.18,
+      "details": {
+        "issueCount": 5
+      }
+    },
+    {
+      "id": "missing-data-source",
+      "injectedFailure": "Fixture directory does not exist",
+      "expectedBehavior": "Fail explicitly without creating a report.",
+      "passed": true,
+      "latencyMs": 18.53,
+      "details": {
+        "failed": true
+      }
+    },
+    {
+      "id": "evidence-conflict",
+      "injectedFailure": "Two records share an ID but disagree on amount",
+      "expectedBehavior": "Reject conflicting duplicates.",
+      "passed": true,
+      "latencyMs": 3.14,
+      "details": {
+        "rejected": true
+      }
+    },
+    {
+      "id": "report-persistence-failure",
+      "injectedFailure": "Report output parent is a regular file",
+      "expectedBehavior": "Fail without returning a report ID.",
+      "passed": true,
+      "latencyMs": 16.29,
+      "details": {
+        "failed": true
+      }
+    },
+    {
+      "id": "approval-expired",
+      "injectedFailure": "Expired approval",
+      "expectedBehavior": "Transition to EXPIRED and block execution.",
+      "passed": true,
+      "latencyMs": 20.27,
+      "details": {
+        "blocked": true,
+        "status": "EXPIRED"
+      }
+    },
+    {
+      "id": "proposal-tampered",
+      "injectedFailure": "Proposal parameters changed after approval",
+      "expectedBehavior": "Reject the content hash mismatch.",
+      "passed": true,
+      "latencyMs": 23.78,
+      "details": {
+        "blocked": true
+      }
+    },
+    {
+      "id": "concurrent-execution",
+      "injectedFailure": "Two execution claims",
+      "expectedBehavior": "Persist exactly one Mock operation.",
+      "passed": true,
+      "latencyMs": 111.38,
+      "details": {
+        "operationCount": 1,
+        "status": "SUCCEEDED",
+        "exitCodes": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "response-lost",
+      "injectedFailure": "Write succeeds but response is lost",
+      "expectedBehavior": "Remain UNKNOWN until reconciliation; do not rewrite.",
+      "passed": true,
+      "latencyMs": 22.77,
+      "details": {
+        "operationCount": 1,
+        "reconciled": "SUCCEEDED"
+      }
+    },
+    {
+      "id": "session-interrupted",
+      "injectedFailure": "Case stops after report persistence",
+      "expectedBehavior": "Resume with parent trace and complete once.",
+      "passed": true,
+      "latencyMs": 20.98,
+      "details": {
+        "first": "REPORT_READY",
+        "resumed": "SUCCEEDED"
+      }
+    }
+  ]
+}

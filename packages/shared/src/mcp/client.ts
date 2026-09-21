@@ -26,6 +26,8 @@ export interface StdioMcpClientConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  /** Defaults to true for compatibility. Security-sensitive subprocesses should pass false. */
+  inheritEnv?: boolean;
 }
 
 /**
@@ -58,6 +60,20 @@ const BLOCKED_ENV_VARS = [
   'STRIPE_SECRET_KEY',
   'NPM_TOKEN',
 ];
+
+export function buildStdioEnvironment(
+  explicit: Record<string, string> | undefined,
+  inheritEnv = true,
+  parent: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
+  const inherited: Record<string, string> = {};
+  if (inheritEnv) {
+    for (const [key, value] of Object.entries(parent)) {
+      if (value !== undefined && !BLOCKED_ENV_VARS.includes(key)) inherited[key] = value;
+    }
+  }
+  return { ...inherited, ...explicit };
+}
 
 /**
  * Per-call options for PoolClient.callTool.
@@ -96,16 +112,10 @@ export class CraftMcpClient {
     if (config.transport === 'stdio') {
       // Stdio transport for local MCP servers - merge with process env,
       // but filter out sensitive credentials to prevent leaking secrets to subprocesses
-      const processEnv: Record<string, string> = {};
-      for (const [key, value] of Object.entries(process.env)) {
-        if (value !== undefined && !BLOCKED_ENV_VARS.includes(key)) {
-          processEnv[key] = value;
-        }
-      }
       this.transport = new StdioClientTransport({
         command: config.command,
         args: config.args,
-        env: { ...processEnv, ...config.env },
+        env: buildStdioEnvironment(config.env, config.inheritEnv !== false),
       });
     } else {
       // HTTP transport for remote MCP servers

@@ -1,0 +1,2 @@
+{"snapshotId":"SYN-INV-001","shopId":"demo-shop","productId":"SYN-PRODUCT-001","skuId":"SYN-SKU-001","observedAt":"2026-09-07T23:00:00+08:00","availableQty":30,"lockedQty":0}
+{"snapshotId":"SYN-INV-002","shopId":"demo-shop","productId":"SYN-PRODUCT-001","skuId":"SYN-SKU-001","observedAt":"2026-09-14T23:00:00+08:00","availableQty":2,"lockedQty":1}

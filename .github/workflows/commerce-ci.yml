@@ -1,0 +1,24 @@
+name: Commerce release readiness
+
+on:
+  pull_request:
+    paths: ["packages/commerce-agent/**", "apps/webui/**", "deploy/commerce/**", ".github/workflows/commerce-ci.yml"]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: "1.4.2" }
+      - run: bun install --frozen-lockfile
+      - run: bun run commerce:typecheck
+      - run: bun run commerce:test
+      - run: bun run commerce:test:deploy
+      - run: bun run webui:typecheck
+      - run: bun run webui:build
+      - name: Build sandbox images
+        run: docker compose -f deploy/commerce/compose.sandbox.yaml build
+      - name: Explain external gates
+        run: echo "PostgreSQL, live-model evaluation, browser E2E, restore drill and 24h soak remain explicit release-manifest gates."

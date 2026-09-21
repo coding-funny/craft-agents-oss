@@ -1,0 +1,12 @@
+[
+  {
+    "promotionId": "SYN-PROMO-001",
+    "shopId": "demo-shop",
+    "skuIds": ["SYN-SKU-001"],
+    "start": "2026-09-08T00:00:00+08:00",
+    "end": "2026-09-15T00:00:00+08:00",
+    "kind": "PRICE_DISCOUNT",
+    "sponsor": "MERCHANT",
+    "stackingRule": "not-stackable"
+  }
+]

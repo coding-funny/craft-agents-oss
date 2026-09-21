@@ -99,7 +99,9 @@ export default defineConfig({
       const wsProto = useTls ? 'wss' : 'ws'
       const httpTarget = `${httpProto}://127.0.0.1:${port}`
       const wsTarget = `${wsProto}://127.0.0.1:${port}`
+      const commerceTarget = `http://127.0.0.1:${process.env.COMMERCE_API_PORT ?? '3210'}`
       return {
+        '/commerce-api': { target: commerceTarget, changeOrigin: true, rewrite: path => path.replace(/^\/commerce-api/, '') },
         '/api': { target: httpTarget, changeOrigin: true, secure: false },
         '/login': { target: httpTarget, changeOrigin: true, secure: false },
         '/ws': { target: wsTarget, ws: true, secure: false },

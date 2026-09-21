@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "sourceType": "SYNTHETIC_FIXTURE",
+    "sourceId": "synthetic-commerce-demo-v1",
+    "owner": "commerce-agent-test-suite",
+    "exportedAt": "2026-09-15T09:00:00+08:00"
+  },
+  "scope": {
+    "tenantId": "demo-tenant",
+    "shopId": "demo-shop",
+    "currency": "CNY",
+    "timezone": "Asia/Shanghai"
+  },
+  "businessWindow": {
+    "start": "2026-09-01T00:00:00+08:00",
+    "end": "2026-09-15T00:00:00+08:00"
+  },
+  "mappingVersion": "canonical-v1",
+  "metricDefinitionVersion": "commerce-metrics-v1",
+  "files": [
+    {
+      "kind": "sales",
+      "path": "sales.json",
+      "format": "json",
+      "sha256": "6a4fb0c4d7aed11935656892d80dcf22da810609a7e7f57c5e437333014ed408",
+      "schemaVersion": 1
+    },
+    {
+      "kind": "inventory",
+      "path": "inventory.jsonl",
+      "format": "jsonl",
+      "sha256": "a596cadf1c11b775652ec6b011b84609df20f917422f992ffc3ef1cc4a9c120c",
+      "schemaVersion": 1
+    },
+    {
+      "kind": "promotions",
+      "path": "promotions.json",
+      "format": "json",
+      "sha256": "1002e5ec79902be929260850529f80794ee0de5e7adedcfae6e96e93b923c4d0",
+      "schemaVersion": 1
+    },
+    {
+      "kind": "products",
+      "path": "products.csv",
+      "format": "csv",
+      "sha256": "27415c522bfc93b851560b393692a854f0ea290bbe0dcdd459b0e20dd5cad3c3",
+      "schemaVersion": 1
+    },
+    {
+      "kind": "ads",
+      "path": "ads.csv",
+      "format": "csv",
+      "sha256": "a84176ebfaa789b69ca5dd65366861412094740056c1de2ac4bc2f9514267885",
+      "schemaVersion": 1
+    }
+  ]
+}

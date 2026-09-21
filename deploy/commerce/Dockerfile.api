@@ -1,0 +1,9 @@
+FROM oven/bun:1.4.2-slim
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile
+RUN mkdir -p /data/reports && chown -R bun:bun /data
+USER bun
+ENV NODE_ENV=production COMMERCE_API_HOST=0.0.0.0 COMMERCE_API_PORT=3210 COMMERCE_DB_PATH=/data/commerce.sqlite COMMERCE_REPORT_DIR=/data/reports
+EXPOSE 3210
+CMD ["bun", "run", "packages/commerce-agent/src/api/server.ts"]
